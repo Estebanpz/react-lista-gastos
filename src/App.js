@@ -1,24 +1,36 @@
-import logo from './logo.svg';
-import './App.css';
-
-function App() {
+import React from 'react';
+import { Helmet } from "react-helmet";
+import {ContenedorHeader, Header, ContenedorBotones,Titulo} from "./elementos/Header";
+import Boton from "./elementos/Boton";
+import BotonCerrarSesion from "./elementos/BotonCerrarSesion";
+import FormularioGasto from './components/FormularioGasto';
+import BarraTotalGastado from './components/BarraTotalGastado';
+import { useAuth } from './contexts/AuthContext';
+const App = () => {
+  const {usuario} = useAuth();
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <Helmet>
+        <title>Agregar Gasto</title>
+      </Helmet>
+
+      <Header>
+        <ContenedorHeader>
+          <Titulo>Agregar Gasto</Titulo>
+          <ContenedorBotones>
+            <Boton to="/categorias">Categorias</Boton>
+            <Boton to="/lista">Lista de Gastos</Boton>
+            <BotonCerrarSesion iconoGrande>Salir</BotonCerrarSesion>
+          </ContenedorBotones>
+        </ContenedorHeader>
+      </Header>
+
+      <FormularioGasto />
+      {
+        usuario &&
+        <BarraTotalGastado />
+      }
+    </>
   );
 }
 
