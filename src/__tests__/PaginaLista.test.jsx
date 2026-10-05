@@ -52,6 +52,34 @@ describe("PaginaLista", () => {
     expect(screen.getByText("Pago de nómina")).toBeInTheDocument();
   });
 
+  test("cambia de período: semana, 3 meses y personalizado", async () => {
+    montar();
+    userEvent.click(screen.getByRole("button", { name: "Semana" }));
+    let [desde, hasta] = mockRango.mock.calls.at(-1);
+    expect(new Date(desde * 1000).getDay()).toBe(1); //lunes
+    expect(Math.round((hasta - desde) / 86400)).toBe(7);
+    expect(screen.getByLabelText("Resumen de la semana")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Semana siguiente" })).toBeDisabled();
+    userEvent.click(screen.getByRole("button", { name: "Semana anterior" }));
+    expect(screen.getByRole("button", { name: "Semana siguiente" })).toBeEnabled();
+
+    userEvent.click(screen.getByRole("button", { name: "3 meses" }));
+    [desde, hasta] = mockRango.mock.calls.at(-1);
+    const inicio = new Date(desde * 1000);
+    const fin = new Date(hasta * 1000);
+    expect((fin.getFullYear() - inicio.getFullYear()) * 12 + fin.getMonth() - inicio.getMonth()).toBe(2);
+    expect(screen.getByLabelText("Resumen de 3 meses")).toBeInTheDocument();
+
+    userEvent.click(screen.getByRole("button", { name: "Personalizado" }));
+    const dialogo = await screen.findByRole("dialog", { name: "Elegir período" });
+    expect(within(dialogo).getByText("Aplicar")).toBeEnabled(); //ya trae los últimos 7 días
+    userEvent.click(within(dialogo).getByText("Aplicar"));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Elegir período" })).not.toBeInTheDocument());
+    expect(screen.getByLabelText("Resumen del período")).toBeInTheDocument();
+    [desde, hasta] = mockRango.mock.calls.at(-1);
+    expect(Math.round((hasta - desde) / 86400)).toBe(7);
+  });
+
   test("pide al hook los gastos del mes en curso", () => {
     montar();
     const [desde, hasta] = mockRango.mock.calls[0];

@@ -1,6 +1,6 @@
 //Solo se ejecuta con CAPTURAS_DIR=<carpeta>: siembra datos y fotografía cada pantalla (PC y móvil).
 const { test } = require("@playwright/test");
-const { correoUnico, registrarUsuario, deslizar } = require("./utilidades");
+const { correoUnico, registrarUsuario, deslizar, elegirFecha } = require("./utilidades");
 
 const DIR = process.env.CAPTURAS_DIR;
 test.skip(!DIR, "Definir CAPTURAS_DIR para generar capturas");
@@ -33,7 +33,7 @@ const sembrar = async (page) => {
   for (const [desc, monto, cat, dias] of todos) {
     await page.getByLabel("Valor del gasto (COP)").fill(String(monto));
     await page.getByRole("radio", { name: cat }).click();
-    if (dias) await page.getByLabel("Fecha del gasto").fill(aFecha(dias));
+    if (dias) { const [a, m, d] = aFecha(dias).split("-").map(Number); await elegirFecha(page, a, m, d); }
     await page.getByLabel("Detalle").fill(desc);
     await page.getByRole("button", { name: /^guardar gasto/i }).click();
     await page.getByText("¡Gasto guardado!").waitFor();

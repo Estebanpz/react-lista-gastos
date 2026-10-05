@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { correoUnico, registrarUsuario, enviarGasto, irA, deslizar, documentosEnEmulador } = require("./utilidades");
+const { correoUnico, registrarUsuario, enviarGasto, elegirFecha, irA, deslizar, documentosEnEmulador } = require("./utilidades");
 
 const nav = (page) => page.getByRole("navigation", { name: "Principal" });
 
@@ -77,6 +77,40 @@ test.describe("Pantallas nuevas en escritorio", () => {
     await expect(hoja.getByText("Ya existe una categoría con ese nombre.")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(hoja).toBeHidden();
+  });
+
+  test("Calendario: registrar un gasto de hace dos meses y verlo con los filtros de período", async ({ page }) => {
+    await registrarUsuario(page, correoUnico("calendario"));
+    const hoy = new Date();
+    const antes = new Date(hoy.getFullYear(), hoy.getMonth() - 2, 10);
+    await elegirFecha(page, antes.getFullYear(), antes.getMonth() + 1, 10);
+    await enviarGasto(page, "Gasto de hace dos meses", 40000, "Comida");
+    await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
+    const guardado = (await documentosEnEmulador("gastos")).find((d) => d.descripcion === "Gasto de hace dos meses");
+    const f = new Date(Number(guardado.fecha) * 1000);
+    expect([f.getFullYear(), f.getMonth(), f.getDate()]).toEqual([antes.getFullYear(), antes.getMonth(), 10]);
+
+    await irA(page, "Lista");
+    await expect(page.getByText("Gasto de hace dos meses")).toBeHidden(); //período «Mes»: no aparece
+    await page.getByRole("group", { name: "Período" }).getByRole("button", { name: "3 meses" }).click();
+    await expect(page.getByText("Gasto de hace dos meses")).toBeVisible();
+    await expect(page.getByLabel("Resumen de 3 meses")).toContainText(/40\.000/);
+    await page.getByRole("group", { name: "Período" }).getByRole("button", { name: "Semana" }).click();
+    await expect(page.getByText("Gasto de hace dos meses")).toBeHidden();
+
+    //Personalizado: rango de calendario que incluye ese día
+    await page.getByRole("group", { name: "Período" }).getByRole("button", { name: "Personalizado" }).click();
+    const hoja = page.getByRole("dialog", { name: "Elegir período" });
+    await hoja.getByLabel("Año").first().selectOption(String(antes.getFullYear()));
+    await hoja.getByLabel("Mes", { exact: true }).first().selectOption(String(antes.getMonth()));
+    const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const dia = (n) => hoja.getByRole("gridcell", { name: `${n} de ${meses[antes.getMonth()]} de ${antes.getFullYear()}` }).first();
+    await dia(5).click();
+    await dia(15).click();
+    await hoja.getByRole("button", { name: "Aplicar" }).click();
+    await expect(hoja).toBeHidden();
+    await expect(page.getByLabel("Resumen del período")).toContainText(/40\.000/);
+    await expect(page.getByText("Gasto de hace dos meses")).toBeVisible();
   });
 
   test("Lista: filtros, detalle, edición y borrado con confirmación", async ({ page }) => {

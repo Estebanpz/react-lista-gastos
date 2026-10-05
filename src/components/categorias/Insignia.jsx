@@ -15,11 +15,13 @@ const Cuadro = styled.span`
   color: ${(p) => p.$oscuro};
 `;
 
-//Cuadro con el icono de la categoría sobre un tinte de su color
-const Insignia = ({ categoria, tam = 2.75 }) => {
+//Cuadro con el icono de la categoría sobre un tinte de su color.
+//`sobreColor`: va encima de un fondo de color sólido (p. ej. un chip seleccionado); el tinte translúcido se
+//fundiría con él, así que se usa un cuadro blanco y el icono en el tono oscuro de la categoría.
+const Insignia = ({ categoria, tam = 2.75, sobreColor = false }) => {
   const color = colorPorId(categoria.color);
   return (
-    <Cuadro $tam={tam} $fondo={`${color.base}29`} $oscuro={color.oscuro}>
+    <Cuadro $tam={tam} $fondo={sobreColor ? "#fff" : `${color.base}29`} $oscuro={color.oscuro}>
       <IconoCat clave={categoria.icono} tam={Math.round(tam * 8)} />
     </Cuadro>
   );

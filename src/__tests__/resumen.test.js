@@ -86,3 +86,30 @@ describe("resumen", () => {
     expect(h).toBe(getUnixTime(new Date(2026, 9, 31, 23, 59, 59)));
   });
 });
+
+describe("rangos de período", () => {
+  const { rangoSemana, rangoTrimestre, rangoDias, etiquetaRango } = require("../functions/resumen");
+  const f = (s) => new Date(s * 1000);
+
+  it("la semana va de lunes a domingo", () => {
+    const [d, h] = rangoSemana(new Date(2026, 9, 7)); //miércoles
+    expect(f(d).getDate()).toBe(5);
+    expect(f(h).getDate()).toBe(11);
+  });
+  it("3 meses terminan en el mes dado, incluso cruzando el año", () => {
+    const [d, h] = rangoTrimestre(new Date(2026, 1, 10));
+    expect([f(d).getFullYear(), f(d).getMonth(), f(d).getDate()]).toEqual([2025, 11, 1]);
+    expect([f(h).getMonth(), f(h).getDate()]).toEqual([1, 28]);
+  });
+  it("días elegidos: inclusivo de principio a fin del día", () => {
+    const [d, h] = rangoDias(new Date(2026, 8, 3, 15), new Date(2026, 8, 12, 2));
+    expect([f(d).getDate(), f(d).getHours()]).toEqual([3, 0]);
+    expect([f(h).getDate(), f(h).getHours()]).toEqual([12, 23]);
+  });
+  it("etiquetas del rango", () => {
+    const hoy = new Date(2026, 9, 5);
+    expect(etiquetaRango(new Date(2026, 9, 5), new Date(2026, 9, 11), hoy)).toMatch(/^5 – 11 de oct/);
+    expect(etiquetaRango(new Date(2026, 8, 28), new Date(2026, 9, 4), hoy)).toMatch(/^28 de sep.* – 4 de oct/);
+    expect(etiquetaRango(new Date(2025, 11, 30), new Date(2026, 0, 2), hoy)).toMatch(/2025/);
+  });
+});

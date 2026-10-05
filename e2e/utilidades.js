@@ -64,6 +64,17 @@ const enviarGasto = async (page, descripcion, cantidad, categoria) => {
   await page.getByRole("button", { name: /^guardar gasto/i }).click();
 };
 
+//Cambia la fecha del gasto con el calendario (dia: 1–31; mes: 1–12). Usa los selectores de mes y año del calendario.
+const elegirFecha = async (page, anio, mes, dia) => {
+  await page.getByRole("button", { name: /^Fecha del gasto/ }).click();
+  const hoja = page.getByRole("dialog", { name: "Fecha del gasto" });
+  await hoja.getByLabel("Año").selectOption(String(anio));
+  await hoja.getByLabel("Mes", { exact: true }).selectOption(String(mes - 1));
+  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  await hoja.getByRole("gridcell", { name: `${dia} de ${meses[mes - 1]} de ${anio}` }).click();
+  await hoja.waitFor({ state: "hidden" });
+};
+
 //Va a una sección con la navegación principal (barra lateral en escritorio)
 const irA = async (page, nombre) => {
   await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: nombre }).click();
@@ -90,4 +101,4 @@ const gastosEnEmulador = async () => (await documentosEnEmulador("gastos")).map(
 //Para cortar la comunicación con los emuladores y simular que no hay red
 const RUTA_EMULADORES = new RegExp(`127\\.0\\.0\\.1:(${puertos.firestore}|${puertos.auth})`);
 
-module.exports = { cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, esperarServiceWorker, gastosEnEmulador };
+module.exports = { cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };

@@ -1,8 +1,14 @@
 //Cálculos puros sobre listas de gastos (sin Firebase ni React: fáciles de probar).
 //Un gasto es {id, descripcion, cantidad, categoria, fecha (segundos Unix), uidUsuario}.
-import { startOfMonth, endOfMonth, startOfYear, endOfYear, getUnixTime, fromUnixTime, getDaysInMonth, isSameMonth } from "date-fns";
+import { startOfMonth, endOfMonth, startOfYear, endOfYear, startOfWeek, endOfWeek, startOfDay, endOfDay, subMonths, getUnixTime, fromUnixTime, getDaysInMonth, isSameMonth } from "date-fns";
 
 export const rangoMes = (fecha) => [getUnixTime(startOfMonth(fecha)), getUnixTime(endOfMonth(fecha))];
+//Semana de lunes a domingo
+export const rangoSemana = (fecha) => [getUnixTime(startOfWeek(fecha, { weekStartsOn: 1 })), getUnixTime(endOfWeek(fecha, { weekStartsOn: 1 }))];
+//Tres meses calendario que terminan en el mes de `fecha`
+export const rangoTrimestre = (fecha) => [getUnixTime(startOfMonth(subMonths(fecha, 2))), getUnixTime(endOfMonth(fecha))];
+//Días elegidos a mano (ambos incluidos)
+export const rangoDias = (desde, hasta) => [getUnixTime(startOfDay(desde)), getUnixTime(endOfDay(hasta))];
 export const rangoAnio = (fecha) => [getUnixTime(startOfYear(fecha)), getUnixTime(endOfYear(fecha))];
 
 export const totalGastos = (gastos) => gastos.reduce((acc, g) => acc + Number(g.cantidad), 0);
@@ -96,3 +102,15 @@ export const etiquetaDia = (fecha, hoy = new Date()) => {
 export const etiquetaMes = (fecha) => cap(mesAnio.format(fecha));
 export const etiquetaDiaCorta = (fecha) => larga.format(fecha);
 export const claveFecha = claveDia;
+
+const corta = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short" });
+const cortaAnio = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric" });
+//«5 – 11 oct», «28 sep – 4 oct», «3 sep – 12 oct 2026» (con año si no es el actual)
+export const etiquetaRango = (desde, hasta, hoy = new Date()) => {
+  const mismoAnio = desde.getFullYear() === hoy.getFullYear() && hasta.getFullYear() === hoy.getFullYear();
+  const f = mismoAnio ? corta : cortaAnio;
+  if (desde.getMonth() === hasta.getMonth() && desde.getFullYear() === hasta.getFullYear() && mismoAnio) {
+    return desde.getDate() === hasta.getDate() ? f.format(desde) : `${desde.getDate()} – ${f.format(hasta)}`;
+  }
+  return `${f.format(desde)} – ${f.format(hasta)}`;
+};

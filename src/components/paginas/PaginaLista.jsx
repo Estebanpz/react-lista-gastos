@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { Suspense, lazy, useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import styled, { keyframes } from "styled-components";
-import { fromUnixTime } from "date-fns";
+import { fromUnixTime, addDays, addMonths, startOfMonth } from "date-fns";
 import theme from "../../theme";
 import useGastosRango from "../../Hooks/useGastosRango";
 import useMediaQuery from "../../Hooks/useMediaQuery";
 import { useCategorias } from "../../contexts/CategoriasContext";
-import { rangoMes, totalGastos, porCategoria, agruparPorDia, agruparPorCategoria, filtrarGastos, ordenarGastos, etiquetaDia, etiquetaMes } from "../../functions/resumen";
+import { rangoMes, rangoSemana, rangoTrimestre, rangoDias, etiquetaRango, totalGastos, porCategoria, agruparPorDia, agruparPorCategoria, filtrarGastos, ordenarGastos, etiquetaDia, etiquetaMes } from "../../functions/resumen";
 import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
 import BorrarGasto from "../../firebase/BorrarGasto";
 import FilaGasto from "../gastos/FilaGasto";
@@ -17,9 +17,11 @@ import BarraProgreso from "../graficas/BarraProgreso";
 import Hoja from "../Hoja";
 import Ilustracion from "../Ilustracion";
 import { colorPorId } from "../../functions/paleta";
-import { IconoBuscar, IconoIzquierda, IconoDerecha, IconoCerrar } from "../iconos";
-import { BotonEnlace } from "../auth/elementos";
+import { IconoBuscar, IconoIzquierda, IconoDerecha, IconoCerrar, IconoCalendario } from "../iconos";
+import { BotonEnlace, BotonPrincipal } from "../auth/elementos";
 import { useNavigate } from "react-router-dom";
+
+const Calendario = lazy(() => import("../calendario/Calendario"));
 
 const entrar = keyframes`from { opacity: 0; transform: translateY(0.6rem); } to { opacity: 1; transform: none; }`;
 
@@ -162,6 +164,56 @@ const Segmentos = styled.div`
     button {
       transition: none;
     }
+  }
+`;
+
+const SegmentosPeriodo = styled(Segmentos)`
+  margin-left: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  button {
+    white-space: nowrap;
+  }
+`;
+
+const BotonRango = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.1rem;
+  border: 1px solid ${theme.bordeCampo};
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  color: ${theme.tinta};
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colorPrimario};
+    outline-offset: 2px;
+  }
+`;
+
+const PieRango = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+
+  p {
+    font-weight: 700;
+    color: ${theme.tinta};
+  }
+
+  button {
+    width: auto;
+    min-width: 8rem;
   }
 `;
 
@@ -354,12 +406,23 @@ const ORDENES = [
 
 const formatoCorto = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
+const PERIODOS = [
+  { id: "semana", texto: "Semana", total: "Total de la semana", resumen: "Resumen de la semana" },
+  { id: "mes", texto: "Mes", total: "Total del mes", resumen: "Resumen del mes" },
+  { id: "trimestre", texto: "3 meses", total: "Total de 3 meses", resumen: "Resumen de 3 meses" },
+  { id: "personalizado", texto: "Personalizado", total: "Total del período", resumen: "Resumen del período" },
+];
+
 const PaginaLista = () => {
   const navigate = useNavigate();
   const { porId } = useCategorias();
   const esEscritorio = useMediaQuery("(min-width: 60rem)");
   const hoy = useMemo(() => new Date(), []);
-  const [mes, cambiarMes] = useState(hoy);
+  const [periodo, cambiarPeriodo] = useState("mes");
+  const [ancla, cambiarAncla] = useState(hoy);
+  const [rango, cambiarRango] = useState(null); //{from, to} del período personalizado
+  const [borrador, cambiarBorrador] = useState(null);
+  const [rangoAbierto, cambiarRangoAbierto] = useState(false);
   const [texto, cambiarTexto] = useState("");
   const [categoriasSel, cambiarCategoriasSel] = useState([]);
   const [orden, cambiarOrden] = useState("reciente");
@@ -369,9 +432,22 @@ const PaginaLista = () => {
   const [detalleAbierto, cambiarDetalleAbierto] = useState(false);
   const [aBorrar, cambiarABorrar] = useState(null);
 
-  const [desde, hasta] = useMemo(() => rangoMes(mes), [mes]);
+  //Rango consultado según el período elegido (semana y mes se pueden mover con las flechas)
+  const info = useMemo(() => {
+    let limites;
+    if (periodo === "semana") limites = rangoSemana(ancla);
+    else if (periodo === "trimestre") limites = rangoTrimestre(ancla);
+    else if (periodo === "personalizado" && rango) limites = rangoDias(rango.from, rango.to);
+    else limites = rangoMes(ancla);
+    const [d, h] = limites;
+    const ini = fromUnixTime(d);
+    const fin = fromUnixTime(h);
+    const etiqueta = periodo === "mes" ? etiquetaMes(ancla) : etiquetaRango(ini, fin, hoy);
+    return { desde: d, hasta: h, etiqueta, esActual: fin >= hoy };
+  }, [periodo, ancla, rango, hoy]);
+  const { desde, hasta, etiqueta, esActual } = info;
+  const textoPeriodo = PERIODOS.find((p) => p.id === periodo);
   const { gastos, cargando, error } = useGastosRango(desde, hasta);
-  const esMesActual = mes.getFullYear() === hoy.getFullYear() && mes.getMonth() === hoy.getMonth();
 
   const presentes = useMemo(() => porCategoria(gastos).map((c) => c.id), [gastos]);
   const visibles = useMemo(() => ordenarGastos(filtrarGastos(gastos, { texto, categorias: categoriasSel }), orden), [gastos, texto, categoriasSel, orden]);
@@ -380,11 +456,33 @@ const PaginaLista = () => {
   const seleccionado = visibles.find((g) => g.id === seleccionadoId) || null;
   const mayor = porCategoria(gastos)[0];
 
-  const moverMes = (delta) => {
-    const nuevo = new Date(mes.getFullYear(), mes.getMonth() + delta, 1);
-    cambiarMes(nuevo);
+  const reiniciarSeleccion = () => {
     cambiarSeleccionadoId(null);
     cambiarFilaAbierta(null);
+  };
+
+  const mover = (sentido) => {
+    if (periodo === "semana") cambiarAncla(addDays(ancla, 7 * sentido));
+    else cambiarAncla(startOfMonth(addMonths(ancla, (periodo === "trimestre" ? 3 : 1) * sentido)));
+    reiniciarSeleccion();
+  };
+
+  const elegirPeriodo = (id) => {
+    reiniciarSeleccion();
+    if (id === "personalizado") {
+      cambiarBorrador(rango || { from: addDays(hoy, -6), to: hoy });
+      cambiarRangoAbierto(true);
+      return;
+    }
+    cambiarPeriodo(id);
+    cambiarAncla(hoy);
+  };
+
+  const aplicarRango = () => {
+    if (!borrador?.from) return;
+    cambiarRango({ from: borrador.from, to: borrador.to || borrador.from });
+    cambiarPeriodo("personalizado");
+    cambiarRangoAbierto(false);
   };
 
   const alternarCategoria = (id) => cambiarCategoriasSel((sel) => (sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]));
@@ -412,9 +510,9 @@ const PaginaLista = () => {
 
       <Titulo>Lista de gastos</Titulo>
 
-      <Resumen aria-label="Resumen del mes" aria-busy={cargando}>
+      <Resumen aria-label={textoPeriodo.resumen} aria-busy={cargando}>
         <div>
-          <span>Total del mes</span>
+          <span>{textoPeriodo.total}</span>
           <strong>{ConvertirAMoneda(totalGastos(gastos))}</strong>
         </div>
         <div>
@@ -428,13 +526,30 @@ const PaginaLista = () => {
       </Resumen>
 
       <BarraMes>
-        <BotonRedondo type="button" aria-label="Mes anterior" onClick={() => moverMes(-1)}>
-          <IconoIzquierda tam={20} />
-        </BotonRedondo>
-        <Mes aria-live="polite">{etiquetaMes(mes)}</Mes>
-        <BotonRedondo type="button" aria-label="Mes siguiente" disabled={esMesActual} onClick={() => moverMes(1)}>
-          <IconoDerecha tam={20} />
-        </BotonRedondo>
+        <SegmentosPeriodo role="group" aria-label="Período">
+          {PERIODOS.map((p) => (
+            <button key={p.id} type="button" aria-pressed={periodo === p.id} onClick={() => elegirPeriodo(p.id)}>{p.texto}</button>
+          ))}
+        </SegmentosPeriodo>
+      </BarraMes>
+
+      <BarraMes style={{ marginTop: "0.75rem" }}>
+        {periodo === "personalizado" ? (
+          <BotonRango type="button" aria-haspopup="dialog" onClick={() => { cambiarBorrador(rango); cambiarRangoAbierto(true); }}>
+            <IconoCalendario tam={18} />
+            {etiqueta}
+          </BotonRango>
+        ) : (
+          <>
+            <BotonRedondo type="button" aria-label={periodo === "semana" ? "Semana anterior" : periodo === "trimestre" ? "3 meses anteriores" : "Mes anterior"} onClick={() => mover(-1)}>
+              <IconoIzquierda tam={20} />
+            </BotonRedondo>
+            <Mes aria-live="polite">{etiqueta}</Mes>
+            <BotonRedondo type="button" aria-label={periodo === "semana" ? "Semana siguiente" : periodo === "trimestre" ? "3 meses siguientes" : "Mes siguiente"} disabled={esActual} onClick={() => mover(1)}>
+              <IconoDerecha tam={20} />
+            </BotonRedondo>
+          </>
+        )}
         <Segmentos role="group" aria-label="Agrupar gastos">
           <button type="button" aria-pressed={vista === "dia"} onClick={() => cambiarVista("dia")}>Por día</button>
           <button type="button" aria-pressed={vista === "categoria"} onClick={() => cambiarVista("categoria")}>Por categoría</button>
@@ -486,9 +601,9 @@ const PaginaLista = () => {
           {!cargando && !error && gastos.length === 0 && (
             <Vacio>
               <Ilustracion nombre="sin-gastos" ancho="11rem" />
-              <strong>No hay gastos en {etiquetaMes(mes)}</strong>
-              <p>{esMesActual ? "Registra tu primer gasto del mes desde Inicio." : "Prueba con otro mes."}</p>
-              {esMesActual && <BotonEnlace type="button" onClick={() => navigate("/")}>Ir a Inicio</BotonEnlace>}
+              <strong>No hay gastos {periodo === "mes" ? `en ${etiqueta}` : "en este período"}</strong>
+              <p>{esActual ? "Registra un gasto desde Inicio." : "Prueba con otro período."}</p>
+              {esActual && <BotonEnlace type="button" onClick={() => navigate("/")}>Ir a Inicio</BotonEnlace>}
             </Vacio>
           )}
 
@@ -553,6 +668,16 @@ const PaginaLista = () => {
           <DetalleGasto gasto={seleccionado} categoria={porId(seleccionado.categoria)} alBorrar={() => cambiarABorrar(seleccionado)} />
         </Hoja>
       )}
+
+      <Hoja abierta={rangoAbierto} alCerrar={() => cambiarRangoAbierto(false)} titulo="Elegir período" subtitulo="Toca el primer y el último día." ancho={esEscritorio ? "44rem" : "26rem"}>
+        <Suspense fallback={<p role="status" style={{ textAlign: "center", padding: "2rem 0" }}>Cargando calendario…</p>}>
+          <Calendario mode="range" selected={borrador || undefined} onSelect={cambiarBorrador} hasta={hoy} meses={esEscritorio ? 2 : 1} />
+        </Suspense>
+        <PieRango>
+          <p aria-live="polite">{borrador?.from ? etiquetaRango(borrador.from, borrador.to || borrador.from, hoy) : "Elige el primer día"}</p>
+          <BotonPrincipal type="button" disabled={!borrador?.from} onClick={aplicarRango}>Aplicar</BotonPrincipal>
+        </PieRango>
+      </Hoja>
 
       <ConfirmarBorrado
         abierta={Boolean(aBorrar)}

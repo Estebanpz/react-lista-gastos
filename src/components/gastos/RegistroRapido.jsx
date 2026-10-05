@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { getUnixTime, fromUnixTime } from "date-fns";
@@ -11,7 +11,8 @@ import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
 import Insignia from "../categorias/Insignia";
 import CrearCategoria from "../categorias/CrearCategoria";
 import Ilustracion from "../Ilustracion";
-import { IconoCheck, IconoCalendario, IconoNota, IconoMas } from "../iconos";
+import SelectorFecha from "../calendario/SelectorFecha";
+import { IconoCheck, IconoNota, IconoMas } from "../iconos";
 import { BotonPrincipal, Espera, MensajeError, BotonEnlace } from "../auth/elementos";
 
 const aparecer = keyframes`from { opacity: 0; transform: translateY(0.75rem) scale(0.98); } to { opacity: 1; transform: none; }`;
@@ -36,35 +37,6 @@ const Etiqueta = styled.label`
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: ${theme.tintaSuave};
-`;
-
-const FechaPastilla = styled.label`
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: 2.5rem;
-  padding: 0 0.9rem;
-  border: 1px solid ${theme.borde};
-  border-radius: 999px;
-  background: ${theme.campo};
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: ${theme.tinta};
-  cursor: pointer;
-
-  &:focus-within {
-    outline: 3px solid ${theme.colorPrimario};
-    outline-offset: 2px;
-  }
-
-  input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    opacity: 0;
-    cursor: pointer;
-  }
 `;
 
 //El campo que invita a registrar: monto grande y enfocable
@@ -135,9 +107,9 @@ const Chip = styled.button`
   gap: 0.5rem;
   min-height: 2.75rem;
   padding: 0 1rem 0 0.5rem;
-  border: 2px solid ${(p) => (p.$marcado ? theme.colorPrimario : theme.borde)};
+  border: 2px solid ${(p) => (p.$marcado ? "#3e4bc7" : theme.borde)}; /* seleccionado: 6,3:1 con texto blanco (AA) */
   border-radius: 999px;
-  background: ${(p) => (p.$marcado ? theme.colorPrimario : "#fff")};
+  background: ${(p) => (p.$marcado ? "#3e4bc7" : "#fff")};
   color: ${(p) => (p.$marcado ? "#fff" : theme.tinta)};
   font: inherit;
   font-size: 0.9375rem;
@@ -258,7 +230,6 @@ export const interpretarMonto = (texto) => {
 };
 
 const aClaveFecha = (fecha) => `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}-${String(fecha.getDate()).padStart(2, "0")}`;
-const etiquetaFecha = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "long" });
 
 //Registro de un gasto (o edición si llega `gasto`). Pensado para hacerse en pocos toques:
 //monto grande, categoría con un toque, descripción corta y «Guardar».
@@ -288,11 +259,6 @@ const RegistroRapido = ({ gasto, alTerminar, idPrefijo = "registro" }) => {
 
   const valor = interpretarMonto(monto);
   const hoy = aClaveFecha(new Date());
-  const textoFecha = useMemo(() => {
-    const [a, m, d] = fecha.split("-").map(Number);
-    const f = new Date(a, m - 1, d);
-    return fecha === hoy ? `Hoy, ${etiquetaFecha.format(f)}` : etiquetaFecha.format(f);
-  }, [fecha, hoy]);
 
   const alCambiarMonto = (e) => {
     //Solo dígitos y un separador decimal
@@ -381,11 +347,7 @@ const RegistroRapido = ({ gasto, alTerminar, idPrefijo = "registro" }) => {
       <Formulario onSubmit={guardar} noValidate aria-busy={enviando}>
         <Fila>
           <Etiqueta htmlFor={`${idPrefijo}-monto`}>Valor del gasto (COP)</Etiqueta>
-          <FechaPastilla>
-            <IconoCalendario tam={16} />
-            {textoFecha}
-            <input type="date" name="fecha" aria-label="Fecha del gasto" value={fecha} max={hoy} onChange={(e) => e.target.value && cambiarFecha(e.target.value)} />
-          </FechaPastilla>
+          <SelectorFecha valor={fecha} alCambiar={cambiarFecha} />
         </Fila>
 
         <div>
@@ -417,7 +379,7 @@ const RegistroRapido = ({ gasto, alTerminar, idPrefijo = "registro" }) => {
           <Chips role="radiogroup" aria-labelledby={`${idPrefijo}-cat`}>
             {categorias.map((c) => (
               <Chip key={c.id} type="button" role="radio" aria-checked={categoria === c.id} $marcado={categoria === c.id} onClick={() => cambiarCategoria(c.id)}>
-                <Insignia categoria={c} tam={2} />
+                <Insignia categoria={c} tam={2} sobreColor={categoria === c.id} />
                 {c.texto}
               </Chip>
             ))}
