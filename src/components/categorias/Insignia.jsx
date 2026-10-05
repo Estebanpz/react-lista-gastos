@@ -3,11 +3,20 @@ import styled from "styled-components";
 import { colorPorId } from "../../functions/paleta";
 import IconoCat from "./iconos";
 
+//`&&&` sube la especificidad: los contenedores suelen tener reglas `span { display: block; … }` que, sin esto,
+//le quitarían el centrado al icono (bug visto en el detalle del gasto).
 const Cuadro = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  &&& {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
   width: ${(p) => p.$tam}rem;
   height: ${(p) => p.$tam}rem;
   border-radius: ${(p) => p.$tam * 0.3}rem;

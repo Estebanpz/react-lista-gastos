@@ -17,7 +17,7 @@ const Cabecera = styled.div`
   align-items: center;
   gap: 0.8rem;
 
-  span {
+  div > span {
     display: block;
     font-size: 0.8125rem;
     font-weight: 700;

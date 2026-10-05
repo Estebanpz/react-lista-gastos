@@ -139,6 +139,8 @@ test.describe("Pantallas nuevas en escritorio", () => {
     await page.getByText("Almuerzo de trabajo").click();
     const detalle = page.getByLabel("Detalle del gasto");
     await expect(detalle).toContainText(/85\.000/);
+    //el cuadro del icono no debe perder su centrado por reglas del contenedor (bug visto en el detalle)
+    expect(await detalle.locator("h3").locator("xpath=../preceding-sibling::span").evaluate((el) => getComputedStyle(el).display)).toMatch(/flex$/); //dentro de otra caja flex el navegador lo calcula como «flex»; el bug lo dejaba en «block»
     await detalle.getByRole("link", { name: /editar/i }).click();
     await expect(page.getByRole("heading", { name: "Editar gasto" })).toBeVisible();
     await expect(page.getByLabel("Valor del gasto (COP)")).toHaveValue("85000");
