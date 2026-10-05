@@ -36,7 +36,7 @@ test.describe("Actualización de la app", () => {
     //«Actualizar»: se activa la v2 y la página se recarga sola, una vez
     await page.getByRole("button", { name: "Actualizar" }).click();
     await page.waitForFunction(() => window.__versionApp === "e2e-v2", null, { timeout: 30_000 });
-    await expect(page.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeVisible();
     await expect(page.getByText("Hay una versión nueva de la app.")).toHaveCount(0);
   });
 });

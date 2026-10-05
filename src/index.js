@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import WebFont from "webfontloader";
 //Elementos styled components
 // *********************  COMPONENTES *********************
@@ -42,7 +42,8 @@ const Index = () => {
             <Suspense fallback={<p role="status" style={{ textAlign: "center" }}>Cargando…</p>}>
               <Routes>
                 <Route path="/inicio-sesion" element={<PaginaAuth />} />
-                <Route path="/crear-cuenta" element={<PaginaAuth />} />
+                {/* Ya no hay registro abierto (acceso por invitación): el enlace viejo lleva al inicio de sesión */}
+                <Route path="/crear-cuenta" element={<Navigate to="/inicio-sesion" replace />} />
 
                 <Route element={<RutaPrivada><AppShell /></RutaPrivada>}>
                   <Route path="/" element={<PaginaInicio />} />

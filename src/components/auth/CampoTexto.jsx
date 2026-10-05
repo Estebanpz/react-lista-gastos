@@ -41,7 +41,7 @@ const Entrada = styled.input`
   outline: 0; /* el foco se muestra en la caja (:focus-within) */
   background: transparent;
   font: inherit;
-  font-size: 1rem;
+  font-size: ${theme.letraCampo};
   color: ${theme.tinta};
   caret-color: ${theme.colorPrimario};
 

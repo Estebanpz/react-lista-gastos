@@ -1,29 +1,25 @@
 const { test, expect } = require("@playwright/test");
-const { cerrarSesionUI, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, CLAVE } = require("./utilidades");
+const { cerrarSesionUI, correoUnico, registrarUsuario, iniciarSesionUI, codigosDeRecuperacion, CLAVE } = require("./utilidades");
 
 test.describe("Acceso en el móvil (táctil)", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-  test("deslizar el formulario cambia entre Iniciar sesión y Crear cuenta", async ({ page }) => {
-    await page.goto("/inicio-sesion");
-    const caja = await page.getByRole("tabpanel", { name: "Iniciar sesión" }).boundingBox();
-    const y = caja.y + 60;
-
-    await deslizar(page, 340, 60, y); //hacia la izquierda → Crear cuenta
-    await expect(page.getByRole("tab", { name: "Crear cuenta", selected: true })).toBeVisible();
-    await expect(page).toHaveURL(/\/crear-cuenta$/);
-
-    await deslizar(page, 60, 340, y); //hacia la derecha → Iniciar sesión
-    await expect(page.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible();
+  test("el acceso es por invitación: no hay registro y /crear-cuenta lleva al inicio de sesión", async ({ page }) => {
+    await page.goto("/crear-cuenta");
     await expect(page).toHaveURL(/\/inicio-sesion$/);
+    await expect(page.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeVisible();
+    await expect(page.getByText(/el acceso es por invitación/i)).toBeVisible();
+    await expect(page.getByText(/crear cuenta/i)).toHaveCount(0);
+    await expect(page.getByLabel("Repetir contraseña")).toHaveCount(0);
   });
 
-  test("un roce corto y lento NO cambia de panel", async ({ page }) => {
+  test("en el iPhone ningún campo provoca zoom al enfocarlo (letra de al menos 16px)", async ({ page }) => {
     await page.goto("/inicio-sesion");
-    const caja = await page.getByRole("tabpanel", { name: "Iniciar sesión" }).boundingBox();
-    await deslizar(page, 200, 160, caja.y + 60, { pasos: 6, pausaMs: 60 });
-    await expect(page.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible();
-    await expect(page).toHaveURL(/\/inicio-sesion$/);
+    const tamanos = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("input:not([type=checkbox]), select, textarea")).map((el) => parseFloat(getComputedStyle(el).fontSize))
+    );
+    expect(tamanos.length).toBeGreaterThan(1);
+    expect(Math.min(...tamanos)).toBeGreaterThanOrEqual(16);
   });
 
   test("al enfocar un campo la cabecera se contrae para dejar espacio al teclado", async ({ page }) => {
@@ -35,22 +31,13 @@ test.describe("Acceso en el móvil (táctil)", () => {
     await expect(titular).not.toBeInViewport(); //la cabecera se contrajo (queda recortada a altura 0)
   });
 
-  test("el panel que no se ve no se puede alcanzar con el teclado", async ({ page }) => {
-    await page.goto("/inicio-sesion");
-    const ocultos = await page.evaluate(() =>
-      Array.from(document.querySelectorAll("#panel-crear input, #panel-crear button")).map((el) => getComputedStyle(el).visibility)
-    );
-    expect(ocultos.length).toBeGreaterThan(0);
-    expect(new Set(ocultos)).toEqual(new Set(["hidden"]));
-  });
-
   test("un error de validación vibra, enfoca el primer campo y dice qué corregir", async ({ page }) => {
     await page.addInitScript(() => {
       window.__vibraciones = [];
       navigator.vibrate = (p) => { window.__vibraciones.push(p); return true; };
     });
     await page.goto("/inicio-sesion");
-    const panel = page.getByRole("tabpanel", { name: "Iniciar sesión" });
+    const panel = page.getByRole("main");
     await panel.getByRole("button", { name: /^iniciar sesión/i }).tap();
     await expect(panel.getByText("Escribe tu correo electrónico.")).toBeVisible();
     await expect(panel.getByLabel("Correo electrónico")).toBeFocused();
@@ -59,16 +46,11 @@ test.describe("Acceso en el móvil (táctil)", () => {
 });
 
 test.describe("Acceso: movimiento reducido", () => {
-  test("con «reducir movimiento» el carrusel y la hoja no se animan", async ({ page }) => {
+  test("con «reducir movimiento» la hoja de acceso no se anima", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/inicio-sesion");
-    const info = await page.evaluate(() => {
-      const pista = document.querySelector("#panel-entrar").parentElement;
-      const hoja = pista.closest("section");
-      return { pista: getComputedStyle(pista).transitionDuration, animacionHoja: getComputedStyle(hoja).animationName };
-    });
-    expect(info.pista).toBe("0s");
-    expect(info.animacionHoja).toBe("none");
+    const animacion = await page.evaluate(() => getComputedStyle(document.querySelector("main section")).animationName);
+    expect(animacion).toBe("none");
   });
 });
 
@@ -86,7 +68,7 @@ test.describe("Acceso: Recordarme y sesión", () => {
     await iniciarSesionUI(page, correo, false); //ahora SIN recordar
     const nueva = await context.newPage();
     await nueva.goto("/");
-    await expect(nueva.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible(); //no hay sesión en la pestaña nueva
+    await expect(nueva.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeVisible(); //no hay sesión en la pestaña nueva
     await nueva.close();
     await expect(page.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible(); //la original sigue
   });
@@ -96,7 +78,7 @@ test.describe("Acceso: Recordarme y sesión", () => {
     await registrarUsuario(page, correo);
     await cerrarSesionUI(page);
 
-    const panel = page.getByRole("tabpanel", { name: "Iniciar sesión" });
+    const panel = page.getByRole("main");
     await panel.getByLabel("Correo electrónico").fill(correo);
     await panel.getByLabel("Contraseña", { exact: true }).fill("otra-clave-mala");
     await panel.getByRole("button", { name: /^iniciar sesión/i }).click();
@@ -115,7 +97,7 @@ test.describe("Acceso: recuperar contraseña", () => {
     const pedir = async (correo) => {
       const nueva = await context.newPage();
       await nueva.goto("/inicio-sesion");
-      const panel = nueva.getByRole("tabpanel", { name: "Iniciar sesión" });
+      const panel = nueva.getByRole("main");
       await panel.getByLabel("Correo electrónico").fill(correo);
       await panel.getByRole("button", { name: "¿Olvidaste tu contraseña?" }).click();
       await panel.getByRole("button", { name: "Enviar enlace" }).click();
@@ -134,7 +116,7 @@ test.describe("Acceso: recuperar contraseña", () => {
 
   test("el enlace «Volver a iniciar sesión» regresa al formulario con el foco usable", async ({ page }) => {
     await page.goto("/inicio-sesion");
-    const panel = page.getByRole("tabpanel", { name: "Iniciar sesión" });
+    const panel = page.getByRole("main");
     await panel.getByRole("button", { name: "¿Olvidaste tu contraseña?" }).click();
     await panel.getByRole("button", { name: /volver a iniciar sesión/i }).click();
     await expect(panel.getByLabel("Contraseña", { exact: true })).toBeVisible();

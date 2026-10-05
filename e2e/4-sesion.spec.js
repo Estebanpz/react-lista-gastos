@@ -55,10 +55,10 @@ test.describe("Cerrar sesión", () => {
         { timeout: 20_000 }
       )
       .toBe("borrado");
-    await expect(page.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeVisible();
 
     //y la sesión quedó cerrada: una ruta privada redirige al login
     await page.goto("/lista");
-    await expect(page.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeVisible();
   });
 });

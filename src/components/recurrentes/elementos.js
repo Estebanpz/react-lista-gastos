@@ -33,7 +33,7 @@ export const Entrada = styled.input`
   border-radius: 999px;
   background: ${theme.campo};
   font: inherit;
-  font-size: 1rem;
+  font-size: ${theme.letraCampo};
   color: ${theme.tinta};
   caret-color: ${theme.colorPrimario};
 
@@ -58,7 +58,7 @@ export const Seleccion = styled.select`
   border-radius: 999px;
   background-color: ${theme.campo};
   font: inherit;
-  font-size: 1rem;
+  font-size: ${theme.letraCampo};
   font-weight: 600;
   color: ${theme.tinta};
   cursor: pointer;

@@ -155,7 +155,7 @@ const CampoNota = styled.div`
     outline: 0;
     background: transparent;
     font: inherit;
-    font-size: 1rem;
+    font-size: ${theme.letraCampo};
     color: ${theme.tinta};
     caret-color: ${theme.colorPrimario};
   }

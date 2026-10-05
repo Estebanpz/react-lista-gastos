@@ -89,6 +89,7 @@ const Contenedor = styled.div`
 
   .rdp-dropdown {
     font: inherit;
+    font-size: ${theme.letraCampo}; /* evita el zoom de Safari en iPhone al tocar mes o año */
     font-weight: 700;
   }
 

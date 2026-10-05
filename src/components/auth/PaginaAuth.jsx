@@ -1,6 +1,6 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Helmet } from "react-helmet";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { destinoTrasLogin } from "../../functions/destino";
 import styled, { keyframes } from "styled-components";
 import { useDrag } from "@use-gesture/react";
@@ -9,9 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { ReactComponent as Ilustracion } from "../../img/undraw_mobile_payments.svg";
 import logoMarca from "../../img/logo-marca.png";
 import FormularioInicioSesion from "./FormularioInicioSesion";
-import FormularioRegistro from "./FormularioRegistro";
 import { IconoSinConexion, IconoCampana, IconoRayo } from "./iconos";
-import { Oculto } from "./elementos";
 
 // ---------- Animaciones ----------
 //Un solo momento «de autor»: la hoja sube al entrar. El resto son transiciones funcionales.
@@ -281,99 +279,29 @@ const Asa = styled.button`
   }
 `;
 
-const Selector = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem;
-  padding: 0.3rem;
-  background: ${theme.campo};
-  border: 1px solid ${theme.borde};
-  border-radius: 999px;
-`;
-
-const Pestana = styled.button`
-  min-height: 2.75rem;
-  border: 0;
-  border-radius: 999px;
-  background: ${(p) => (p.$activa ? "#fff" : "transparent")};
-  box-shadow: ${(p) => (p.$activa ? "0 2px 8px rgba(20, 22, 31, 0.1)" : "none")};
-  font: inherit;
-  font-size: 0.9375rem;
-  font-weight: ${(p) => (p.$activa ? 700 : 500)};
-  color: ${(p) => (p.$activa ? "#3e4bc7" : theme.tintaSuave)};
-  cursor: pointer;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
-  touch-action: manipulation;
-
-  &:focus-visible {
-    outline: 3px solid ${theme.colorPrimario};
-    outline-offset: 2px;
+//El acceso es por invitación: solo hay formulario de inicio de sesión (las cuentas se crean en Firebase)
+const Encabezado = styled.div`
+  h2 {
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    color: ${theme.tinta};
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const Puntos = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 0.35rem;
-  margin-top: -0.4rem;
-
-  span {
-    width: 1.1rem;
-    height: 0.4rem;
-    border-radius: 999px;
-    background: #c3c9f2;
-    transform: scaleX(0.364); /* el punto inactivo es un círculo de 0,4 rem */
-    transition: transform 0.3s ${SALIDA_EXPO}, background-color 0.3s ease;
-  }
-
-  span[data-activo="true"] {
-    transform: none;
-    background: ${theme.colorPrimario};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    span {
-      transition: none;
-    }
-  }
-`;
-
-//Ventana del carrusel de formularios. El margen negativo deja espacio para que no se
-//recorte el anillo de foco de los campos.
-const Visor = styled.div`
-  overflow: hidden;
-  /* El relleno inferior deja sitio a la sombra del botón; el margen negativo lo compensa */
-  margin: 0 -0.5rem -1rem;
-  padding: 0.35rem 0.5rem 1.35rem;
-  touch-action: pan-y;
-`;
-
-const Pista = styled.div`
-  display: flex;
-  width: 200%;
-  /* Mientras se arrastra con el dedo sigue al dedo al instante; al soltar, desliza con suavidad */
-  transition: ${(p) => (p.$arrastrando ? "none" : `transform 0.45s ${SALIDA_EXPO}`)};
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  p {
+    margin-top: 0.3rem;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    color: ${theme.tintaSuave};
   }
 `;
 
 const Panel = styled.div`
-  width: 50%;
-  padding: 0 0.5rem;
-  visibility: ${(p) => (p.$activo ? "visible" : "hidden")};
-  /* El panel inactivo se oculta DESPUÉS de deslizarse: así no queda enfocable con el teclado */
-  transition: visibility 0s linear ${(p) => (p.$activo ? "0s" : "0.45s")};
   animation: ${(p) => (p.$sacudir ? sacudir : "none")} 0.4s ease;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    transition: none;
   }
 `;
 
@@ -397,10 +325,6 @@ const PieOffline = styled.p`
 `;
 
 // ---------- Lógica ----------
-const RUTAS = { entrar: "/inicio-sesion", crear: "/crear-cuenta" };
-const UMBRAL_DISTANCIA = 0.28; //fracción del ancho que hay que arrastrar para cambiar de panel
-const UMBRAL_VELOCIDAD = 0.45;
-
 const vibrar = () => {
   try {
     if (navigator.vibrate) navigator.vibrate(40);
@@ -411,27 +335,12 @@ const vibrar = () => {
 
 const PaginaAuth = () => {
   const { usuario } = useAuth();
-  const navigate = useNavigate();
-  const { pathname, state } = useLocation();
-  const modo = pathname === RUTAS.crear ? "crear" : "entrar";
-  const indice = modo === "crear" ? 1 : 0;
+  const { state } = useLocation();
 
-  const visor = useRef(null);
-  const [arrastre, cambiarArrastre] = useState(0);
-  const [arrastrando, cambiarArrastrando] = useState(false);
   const [sacudiendo, cambiarSacudiendo] = useState(false);
   const [compactoManual, cambiarCompactoManual] = useState(false);
   const [enfocado, cambiarEnfocado] = useState(false);
   const compacto = compactoManual || enfocado;
-
-  //La URL refleja el panel activo, así se puede compartir o recargar en el mismo sitio
-  const cambiarModo = useCallback(
-    (nuevo) => {
-      //Se conserva el destino pendiente (state.desde) al cambiar de panel
-      if (nuevo !== modo) navigate(RUTAS[nuevo], { replace: true, state });
-    },
-    [modo, navigate, state]
-  );
 
   //Error de validación o de acceso: sacudida del panel + vibración corta (Android)
   const avisarError = useCallback(() => {
@@ -439,30 +348,6 @@ const PaginaAuth = () => {
     vibrar();
     window.setTimeout(() => cambiarSacudiendo(false), 450);
   }, []);
-
-  //Deslizar el formulario hacia los lados cambia de panel (solo con el dedo)
-  const gestosVisor = useDrag(
-    ({ active, last, movement: [mx], velocity: [vx], tap }) => {
-      if (tap) return;
-      const ancho = visor.current ? visor.current.offsetWidth : 1;
-      if (active) {
-        //Más allá del primer o del último panel no hay nada: se arrastra con resistencia
-        const haciaElVacio = (indice === 0 && mx > 0) || (indice === 1 && mx < 0);
-        cambiarArrastrando(true);
-        cambiarArrastre(haciaElVacio ? mx * 0.18 : mx);
-      }
-      if (last) {
-        cambiarArrastrando(false);
-        cambiarArrastre(0);
-        if (vx > UMBRAL_VELOCIDAD || Math.abs(mx) > ancho * UMBRAL_DISTANCIA) {
-          //Se usa el signo del desplazamiento total: al soltar, la «dirección» del gesto llega en cero
-          if (mx < 0 && indice === 0) cambiarModo("crear");
-          if (mx > 0 && indice === 1) cambiarModo("entrar");
-        }
-      }
-    },
-    { axis: "x", filterTaps: true, threshold: 10, pointer: { touch: true } }
-  );
 
   //Arrastrar el asa hacia arriba oculta la cabecera; hacia abajo la muestra
   const gestosAsa = useDrag(
@@ -474,12 +359,6 @@ const PaginaAuth = () => {
     { axis: "y", filterTaps: true, threshold: 6, pointer: { touch: true } }
   );
 
-  //Con las flechas se navega entre pestañas, como en cualquier selector accesible
-  const alPresionarPestana = (e) => {
-    if (e.key === "ArrowRight") cambiarModo("crear");
-    if (e.key === "ArrowLeft") cambiarModo("entrar");
-  };
-
   //Cuando hay un campo enfocado (teclado abierto en el móvil) se libera espacio
   const alEnfocar = () => cambiarEnfocado(true);
   const alDesenfocar = (e) => {
@@ -488,12 +367,11 @@ const PaginaAuth = () => {
 
   if (usuario) return <Navigate to={destinoTrasLogin(state)} replace />;
 
-  const titulo = modo === "crear" ? "Crear cuenta" : "Iniciar sesión";
 
   return (
     <Pagina>
       <Helmet>
-        <title>{titulo} · Finanzas</title>
+        <title>Iniciar sesión · Finanzas</title>
       </Helmet>
 
       <Tarjeta>
@@ -553,50 +431,14 @@ const PaginaAuth = () => {
             onClick={() => cambiarCompactoManual(!compactoManual)}
           />
 
-          <Selector role="tablist" aria-label="Acceso a tu cuenta" onKeyDown={alPresionarPestana}>
-            <Pestana
-              type="button"
-              role="tab"
-              id="pestana-entrar"
-              aria-controls="panel-entrar"
-              aria-selected={modo === "entrar"}
-              tabIndex={modo === "entrar" ? 0 : -1}
-              $activa={modo === "entrar"}
-              onClick={() => cambiarModo("entrar")}
-            >
-              Iniciar sesión
-            </Pestana>
-            <Pestana
-              type="button"
-              role="tab"
-              id="pestana-crear"
-              aria-controls="panel-crear"
-              aria-selected={modo === "crear"}
-              tabIndex={modo === "crear" ? 0 : -1}
-              $activa={modo === "crear"}
-              onClick={() => cambiarModo("crear")}
-            >
-              Crear cuenta
-            </Pestana>
-          </Selector>
+          <Encabezado>
+            <h2>Iniciar sesión</h2>
+            <p>El acceso es por invitación. Si aún no tienes cuenta, pídela a quien te compartió Finanzas.</p>
+          </Encabezado>
 
-          <Puntos aria-hidden="true">
-            <span data-activo={modo === "entrar"} />
-            <span data-activo={modo === "crear"} />
-          </Puntos>
-
-          <Oculto aria-live="polite">{modo === "crear" ? "Formulario para crear cuenta" : "Formulario para iniciar sesión"}</Oculto>
-
-          <Visor ref={visor} {...gestosVisor()}>
-            <Pista $arrastrando={arrastrando} style={{ transform: `translateX(calc(${-indice * 50}% + ${arrastre}px))` }}>
-              <Panel role="tabpanel" id="panel-entrar" aria-labelledby="pestana-entrar" $activo={modo === "entrar"} $sacudir={sacudiendo && modo === "entrar"}>
-                <FormularioInicioSesion alError={avisarError} />
-              </Panel>
-              <Panel role="tabpanel" id="panel-crear" aria-labelledby="pestana-crear" $activo={modo === "crear"} $sacudir={sacudiendo && modo === "crear"}>
-                <FormularioRegistro alError={avisarError} />
-              </Panel>
-            </Pista>
-          </Visor>
+          <Panel $sacudir={sacudiendo}>
+            <FormularioInicioSesion alError={avisarError} />
+          </Panel>
 
           <PieOffline>
             <IconoSinConexion tam={16} /> Funciona sin conexión · Tus datos son privados

@@ -8,16 +8,10 @@ const COMUNES = {
 
 const INICIO_SESION = {
     ...COMUNES,
-    'auth/user-disabled': 'Esta cuenta está deshabilitada.',
+    'auth/user-disabled': 'Tu acceso está desactivado. Escríbele a quien te dio acceso para renovarlo.',
     'auth/user-not-found': 'Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.',
     'auth/wrong-password': 'Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.',
     'auth/invalid-credential': 'Correo o contraseña incorrectos. Revísalos e inténtalo de nuevo.',
-};
-
-const REGISTRO = {
-    ...COMUNES,
-    'auth/email-already-in-use': 'Ese correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña.',
-    'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
 };
 
 const RECUPERAR = { ...COMUNES };
@@ -25,5 +19,4 @@ const RECUPERAR = { ...COMUNES };
 const GENERICO = 'No se pudo completar la acción. Inténtalo de nuevo.';
 
 export const mensajeInicioSesion = (error) => INICIO_SESION[error && error.code] || GENERICO;
-export const mensajeRegistro = (error) => REGISTRO[error && error.code] || GENERICO;
 export const mensajeRecuperar = (error) => RECUPERAR[error && error.code] || GENERICO;

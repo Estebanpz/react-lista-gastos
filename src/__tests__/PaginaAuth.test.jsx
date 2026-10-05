@@ -4,11 +4,9 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 
 const mockIniciarSesion = jest.fn();
-const mockRegistrar = jest.fn();
 const mockRecuperar = jest.fn();
 jest.mock("../firebase/autenticacion", () => ({
   iniciarSesion: (...a) => mockIniciarSesion(...a),
-  registrarUsuario: (...a) => mockRegistrar(...a),
   recuperarClave: (...a) => mockRecuperar(...a),
 }));
 
@@ -27,35 +25,33 @@ const montar = (ruta = "/inicio-sesion") =>
     <MemoryRouter initialEntries={[ruta]}>
       <Routes>
         <Route path="/inicio-sesion" element={<PaginaAuth />} />
-        <Route path="/crear-cuenta" element={<PaginaAuth />} />
         <Route path="/" element={<Ruta />} />
       </Routes>
       <Ruta />
     </MemoryRouter>
   );
 
-const panelEntrar = () => within(document.getElementById("panel-entrar"));
-const panelCrear = () => within(document.getElementById("panel-crear"));
+//Solo hay un formulario (acceso por invitación): se busca en toda la página
+const panelEntrar = () => within(document.body);
 
 describe("PaginaAuth", () => {
   beforeEach(() => {
     mockUsuario = null;
     mockIniciarSesion.mockResolvedValue({});
-    mockRegistrar.mockResolvedValue({});
     mockRecuperar.mockResolvedValue(undefined);
     jest.spyOn(console, "log").mockImplementation(() => {});
   });
   afterEach(() => console.log.mockRestore());
 
   describe("estructura y accesibilidad", () => {
-    test("tiene un único h1, un selector de pestañas y los dos paneles", () => {
+    test("tiene un único h1 y solo el inicio de sesión: el acceso es por invitación, sin registro", () => {
       montar();
       expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-      const pestanas = screen.getAllByRole("tab");
-      expect(pestanas.map((p) => p.textContent)).toEqual(["Iniciar sesión", "Crear cuenta"]);
-      expect(pestanas[0]).toHaveAttribute("aria-selected", "true");
-      expect(pestanas[1]).toHaveAttribute("aria-selected", "false");
-      expect(document.getElementById("panel-entrar")).toHaveAttribute("aria-labelledby", "pestana-entrar");
+      expect(screen.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeInTheDocument();
+      expect(screen.getByText(/el acceso es por invitación/i)).toBeInTheDocument();
+      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+      expect(screen.queryByText(/crear cuenta/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Repetir contraseña")).not.toBeInTheDocument();
     });
 
     test("cada campo tiene su etiqueta visible y el autocompletado correcto", () => {
@@ -63,9 +59,6 @@ describe("PaginaAuth", () => {
       const p = panelEntrar();
       expect(p.getByLabelText("Correo electrónico")).toHaveAttribute("autocomplete", "email");
       expect(p.getByLabelText("Contraseña")).toHaveAttribute("autocomplete", "current-password");
-      const c = panelCrear();
-      expect(c.getByLabelText("Contraseña")).toHaveAttribute("autocomplete", "new-password");
-      expect(c.getByLabelText("Repetir contraseña")).toHaveAttribute("autocomplete", "new-password");
     });
 
     test("«Recordarme» es un interruptor accesible y empieza activado", () => {
@@ -83,34 +76,14 @@ describe("PaginaAuth", () => {
       expect(campo).toHaveAttribute("type", "text");
       expect(p.getByRole("button", { name: "Ocultar contraseña" })).toHaveAttribute("aria-pressed", "true");
     });
-
-    test("las flechas del teclado cambian de pestaña", () => {
-      montar();
-      screen.getByRole("tab", { name: "Iniciar sesión" }).focus();
-      userEvent.keyboard("{arrowright}");
-      expect(screen.getByTestId("ruta", { selector: "p" })).toBeDefined();
-      expect(screen.getAllByTestId("ruta")[0]).toHaveTextContent("/crear-cuenta");
-    });
   });
 
-  describe("cambio de panel", () => {
-    test("pulsar «Crear cuenta» actualiza la URL y el panel activo", () => {
-      montar();
-      userEvent.click(screen.getByRole("tab", { name: "Crear cuenta" }));
-      expect(screen.getAllByTestId("ruta")[0]).toHaveTextContent("/crear-cuenta");
-      expect(screen.getByRole("tab", { name: "Crear cuenta" })).toHaveAttribute("aria-selected", "true");
-    });
-
-    test("abrir /crear-cuenta directamente deja activa esa pestaña", () => {
-      montar("/crear-cuenta");
-      expect(screen.getByRole("tab", { name: "Crear cuenta" })).toHaveAttribute("aria-selected", "true");
-    });
-
+  describe("sesión abierta", () => {
     test("si ya hay sesión redirige al inicio", () => {
       mockUsuario = { uid: "ana" };
       montar();
       expect(screen.getAllByTestId("ruta")[0]).toHaveTextContent("/");
-      expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Correo electrónico")).not.toBeInTheDocument();
     });
   });
 
@@ -225,44 +198,6 @@ describe("PaginaAuth", () => {
       userEvent.click(p.getByRole("button", { name: "Enviar enlace" }));
       expect(p.getByText("Escribe tu correo electrónico.")).toBeInTheDocument();
       expect(mockRecuperar).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("crear cuenta", () => {
-    const abrir = () => {
-      montar("/crear-cuenta");
-      return panelCrear();
-    };
-
-    test("exige al menos 6 caracteres y que las contraseñas coincidan", () => {
-      const p = abrir();
-      userEvent.type(p.getByLabelText("Correo electrónico"), "ana@correo.co");
-      userEvent.type(p.getByLabelText("Contraseña"), "123");
-      userEvent.type(p.getByLabelText("Repetir contraseña"), "456");
-      userEvent.click(p.getByRole("button", { name: /crear cuenta/i }));
-      expect(p.getByText("Usa al menos 6 caracteres.")).toBeInTheDocument();
-      expect(p.getByText("Las contraseñas no coinciden.")).toBeInTheDocument();
-      expect(mockRegistrar).not.toHaveBeenCalled();
-    });
-
-    test("con datos válidos crea la cuenta y va al inicio", async () => {
-      const p = abrir();
-      userEvent.type(p.getByLabelText("Correo electrónico"), "ana@correo.co");
-      userEvent.type(p.getByLabelText("Contraseña"), "secreto1");
-      userEvent.type(p.getByLabelText("Repetir contraseña"), "secreto1");
-      userEvent.click(p.getByRole("button", { name: /crear cuenta/i }));
-      await waitFor(() => expect(mockRegistrar).toHaveBeenCalledWith("ana@correo.co", "secreto1", true));
-      await waitFor(() => expect(screen.getAllByTestId("ruta")[0]).toHaveTextContent("/"));
-    });
-
-    test("si el correo ya existe explica qué hacer", async () => {
-      mockRegistrar.mockRejectedValue({ code: "auth/email-already-in-use" });
-      const p = abrir();
-      userEvent.type(p.getByLabelText("Correo electrónico"), "ana@correo.co");
-      userEvent.type(p.getByLabelText("Contraseña"), "secreto1");
-      userEvent.type(p.getByLabelText("Repetir contraseña"), "secreto1");
-      userEvent.click(p.getByRole("button", { name: /crear cuenta/i }));
-      expect(await p.findByRole("alert")).toHaveTextContent(/ya tiene una cuenta.*inicia sesión/i);
     });
   });
 

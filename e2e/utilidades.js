@@ -6,22 +6,26 @@ const CLAVE = "clave-segura-123";
 //Cada prueba usa un correo distinto para no depender de las demás
 const correoUnico = (prefijo) => `${prefijo}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@prueba.test`;
 
-//Crea la cuenta desde la pantalla real (contra el emulador de Auth) y espera la pantalla de inicio
+//No hay registro en la app (acceso por invitación): la cuenta se crea en el emulador de Auth, igual que el
+//administrador la crea en la consola de Firebase, y luego se entra por la pantalla real de inicio de sesión
+const crearCuenta = async (correo) => {
+  const respuesta = await fetch(
+    `http://127.0.0.1:${puertos.auth}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=api-key-falsa-e2e`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: correo, password: CLAVE, returnSecureToken: true }) }
+  );
+  if (!respuesta.ok) throw new Error(`No se pudo crear la cuenta de prueba (${respuesta.status})`);
+};
+
+//Crea la cuenta y entra; espera la pantalla de inicio
 const registrarUsuario = async (page, correo) => {
-  await page.goto("/crear-cuenta");
-  const panel = page.getByRole("tabpanel", { name: "Crear cuenta" });
-  await panel.getByLabel("Correo electrónico").fill(correo);
-  await panel.getByLabel("Contraseña", { exact: true }).fill(CLAVE);
-  await panel.getByLabel("Repetir contraseña").fill(CLAVE);
-  //Enter envía el formulario (en el móvil el botón se mueve mientras la cabecera se contrae al enfocar)
-  await panel.getByLabel("Repetir contraseña").press("Enter");
-  await expect(page.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible();
+  await crearCuenta(correo);
+  await iniciarSesionUI(page, correo);
 };
 
 //Inicia sesión desde la pantalla de acceso; «recordar» = estado del interruptor «Recordarme»
 const iniciarSesionUI = async (page, correo, recordar = true) => {
   await page.goto("/inicio-sesion");
-  const panel = page.getByRole("tabpanel", { name: "Iniciar sesión" });
+  const panel = page.getByRole("main");
   await panel.getByLabel("Correo electrónico").fill(correo);
   await panel.getByLabel("Contraseña", { exact: true }).fill(CLAVE);
   const interruptor = panel.getByRole("switch", { name: "Recordarme" });
@@ -101,4 +105,4 @@ const gastosEnEmulador = async () => (await documentosEnEmulador("gastos")).map(
 //Para cortar la comunicación con los emuladores y simular que no hay red
 const RUTA_EMULADORES = new RegExp(`127\\.0\\.0\\.1:(${puertos.firestore}|${puertos.auth})`);
 
-module.exports = { cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };
+module.exports = { crearCuenta, cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };

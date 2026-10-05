@@ -21,6 +21,9 @@ const theme = {
     // las páginas solo pasan a dos columnas (lista + panel de 22rem) cuando la columna principal
     // conserva ~30rem: 16,5 de barra + 5 de márgenes + 22 de panel + 1,5 de separación + 30 ≈ 75rem.
     pantallaAncha: '(min-width: 60rem)',
+    // Letra mínima de campos y selectores: Safari en iPhone amplía la página al enfocar un campo con menos
+    // de 16px, y en móvil 1rem son 14px. No se bloquea el zoom (accesibilidad); se garantiza el tamaño.
+    letraCampo: 'max(1rem, 16px)',
     dosColumnas: '(min-width: 75rem)'
 }
 

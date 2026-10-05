@@ -1,6 +1,5 @@
 import {
     auth,
-    createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     sendPasswordResetEmail,
     setPersistence,
@@ -27,11 +26,6 @@ const fijarPersistencia = async (recordar) => {
 export const iniciarSesion = async (correo, clave, recordar = true) => {
     await fijarPersistencia(recordar);
     return signInWithEmailAndPassword(auth, correo, clave);
-};
-
-export const registrarUsuario = async (correo, clave, recordar = true) => {
-    await fijarPersistencia(recordar);
-    return createUserWithEmailAndPassword(auth, correo, clave);
 };
 
 //Con la protección contra enumeración de correos de Firebase, esta llamada responde igual

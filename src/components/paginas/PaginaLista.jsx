@@ -243,6 +243,7 @@ const Busqueda = styled.div`
     outline: 0;
     background: transparent;
     font: inherit;
+    font-size: ${theme.letraCampo};
     color: ${theme.tinta};
     caret-color: ${theme.colorPrimario};
   }
@@ -269,7 +270,7 @@ const Seleccion = styled.select`
   border-radius: 999px;
   background-color: #fff;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: ${theme.letraCampo};
   font-weight: 600;
   color: ${theme.tinta};
   cursor: pointer;
