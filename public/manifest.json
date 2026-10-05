@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Lista de Gastos",
-  "short_name": "Gastos",
+  "name": "Finanzas",
+  "short_name": "Finanzas",
   "description": "Registra tus gastos, revísalos por categoría y lleva el total del mes.",
   "lang": "es-CO",
   "dir": "ltr",

@@ -370,7 +370,7 @@ const PaginaCategorias = () => {
   return (
     <>
       <Helmet>
-        <title>Categorías · Lista de Gastos</title>
+        <title>Categorías · Finanzas</title>
       </Helmet>
 
       <Encabezado>

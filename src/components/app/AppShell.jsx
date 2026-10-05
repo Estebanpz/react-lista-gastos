@@ -265,7 +265,7 @@ const AppShell = () => {
       <Superior>
         <Marca>
           <img src={logoMarca} width="32" height="32" alt="" />
-          <span>Lista de Gastos</span>
+          <span>Finanzas</span>
         </Marca>
         <BotonSalirMovil type="button" aria-label="Cerrar sesión" onClick={() => cerrarSesion()}>
           <IconoSalir tam={22} />
@@ -276,7 +276,7 @@ const AppShell = () => {
         <MarcaLateral>
           <img src={logoMarca} width="40" height="40" alt="" />
           <div>
-            Lista de Gastos
+            Finanzas
             <small>Control de gastos</small>
           </div>
         </MarcaLateral>

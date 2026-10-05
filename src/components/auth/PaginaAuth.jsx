@@ -491,7 +491,7 @@ const PaginaAuth = () => {
   return (
     <Pagina>
       <Helmet>
-        <title>{titulo} · Lista de Gastos</title>
+        <title>{titulo} · Finanzas</title>
       </Helmet>
 
       <Tarjeta>
@@ -499,7 +499,7 @@ const PaginaAuth = () => {
         <Hero>
           <Marca>
             <img src={logoMarca} width="40" height="40" alt="" />
-            <span>Lista de Gastos</span>
+            <span>Finanzas</span>
           </Marca>
           <HeroDetalle $compacto={compacto}>
             <div>
@@ -531,7 +531,7 @@ const PaginaAuth = () => {
         <Lateral>
           <Marca>
             <img src={logoMarca} width="40" height="40" alt="" />
-            <span>Lista de Gastos</span>
+            <span>Finanzas</span>
           </Marca>
           <div>
             <Titular>

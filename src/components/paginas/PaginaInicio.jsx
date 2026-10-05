@@ -257,7 +257,7 @@ const PaginaInicio = () => {
   return (
     <>
       <Helmet>
-        <title>Inicio · Lista de Gastos</title>
+        <title>Inicio · Finanzas</title>
       </Helmet>
 
       <Titulo>Hola, así van tus gastos</Titulo>

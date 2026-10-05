@@ -12,7 +12,7 @@ Personas en Colombia que llevan sus gastos personales o del hogar y, a la vez, l
 
 ## Product Purpose
 
-Lista de Gastos registra gastos por categoría y fecha, muestra el total del mes y el desglose por categoría. Su siguiente capacidad son los gastos recurrentes (nómina, recibos, créditos) con recordatorios. Éxito: registrar un gasto es tan rápido que la persona lo hace en el momento y no al final del día, y ningún pago recurrente se olvida.
+Finanzas (antes «Lista de Gastos»; dominio finanzas.zfmanager.com) registra gastos por categoría y fecha, muestra el total del mes y el desglose por categoría. Su siguiente capacidad son los gastos recurrentes (nómina, recibos, créditos) con recordatorios. Éxito: registrar un gasto es tan rápido que la persona lo hace en el momento y no al final del día, y ningún pago recurrente se olvida.
 
 ## Positioning
 
@@ -35,7 +35,7 @@ Una PWA instalable que funciona sin conexión y sincroniza sola al volver, con r
 
 ## Brand Commitments
 
-- Nombre: «Lista de Gastos».
+- Nombre: «Finanzas» (antes «Lista de Gastos»). Dominio: finanzas.zfmanager.com.
 - Logo: pila de monedas verde con símbolo $ (`src/img/logo.png`, iconos de la PWA en `public/`).
 - El usuario pidió **partir del estilo actual** (tipografía Work Sans, azul-violeta `#5B69E2`, verde `#43A854`, botones negros, ilustraciones del login y registro en `src/img/`) y mejorarlo, no reemplazarlo.
 

@@ -505,7 +505,7 @@ const PaginaLista = () => {
   return (
     <>
       <Helmet>
-        <title>Lista de gastos · Lista de Gastos</title>
+        <title>Lista de gastos · Finanzas</title>
       </Helmet>
 
       <Titulo>Lista de gastos</Titulo>

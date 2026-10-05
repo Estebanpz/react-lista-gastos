@@ -45,7 +45,7 @@ const PaginaEditar = () => {
   return (
     <Caja>
       <Helmet>
-        <title>Editar gasto · Lista de Gastos</title>
+        <title>Editar gasto · Finanzas</title>
       </Helmet>
       <BotonEnlace type="button" onClick={() => navigate("/lista")}>
         <IconoRegresar tam={16} /> Volver a la lista
