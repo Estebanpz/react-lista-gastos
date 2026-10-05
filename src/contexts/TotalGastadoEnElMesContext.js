@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useMemo, useContext } from "react";
 import useObtenerGastosDelMes from "./../Hooks/useObtenerGastosMes";
 
 const TotalGastadoContext = React.createContext();
@@ -9,29 +9,21 @@ const useTotalGastado = () => {
 };
 
 const TotalGastadoProvider = ({ children }) => {
-    const [totalGastado, setTotalGastado] = useState(0);
     const [gastos] = useObtenerGastosDelMes();
-    useEffect(()=>{
-      let acumulador = 0;
-     /* 
-        gastos.forEach((gasto) =>{
-          acumulador += Number(gasto.cantidad);
-      });
-     */
-      gastos.reduce((acc, gasto)=>{
-        acumulador += Number(gasto.cantidad);
-        return acumulador;
-      }, acumulador);
-      setTotalGastado(acumulador);
-  }, [gastos]);
 
+    //El total se deriva de los gastos durante el render, no hace falta estado ni efecto
+    const totalGastado = useMemo(
+        () => gastos.reduce((acumulador, gasto) => acumulador + Number(gasto.cantidad), 0),
+        [gastos]
+    );
 
-  return (
-    <TotalGastadoContext.Provider value={{totalGastado, setTotalGastado}}>
-        {
-         children
-        }
-    </TotalGastadoContext.Provider>
-  );
+    //Se memoiza el valor para que los consumidores no se re-rendericen sin necesidad
+    const valor = useMemo(() => ({ totalGastado }), [totalGastado]);
+
+    return (
+        <TotalGastadoContext.Provider value={valor}>
+            {children}
+        </TotalGastadoContext.Provider>
+    );
 };
 export { TotalGastadoContext, TotalGastadoProvider, useTotalGastado };

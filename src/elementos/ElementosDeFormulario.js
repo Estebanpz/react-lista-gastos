@@ -46,6 +46,16 @@ const Input = styled.input`
   border-bottom: 2px solid ${theme.grisClaro};
   outline: none;
 
+  /* Reemplazo visible del outline: el borde inferior cambia de color */
+  &:focus-visible {
+    border-bottom-color: ${theme.colorPrimario};
+  }
+
+  &[type="email"],
+  &[type="password"] {
+    text-transform: none;
+  }
+
   @media (max-width: 60rem) {
     /* 950px */
     font-size: 2.2rem; /* 24px */

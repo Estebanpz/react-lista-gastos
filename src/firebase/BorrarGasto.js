@@ -1,6 +1,9 @@
 import { db, doc, deleteDoc } from "./firebaseConfig";
-const BorrarGasto = async(id) => {
-     await deleteDoc(doc(db, `gastos/${id}`));
+import esperarEscritura from "./esperarEscritura";
+
+//Devuelve "sincronizado" o "en-cola" (ver esperarEscritura)
+const BorrarGasto = (id) => {
+     return esperarEscritura(deleteDoc(doc(db, `gastos/${id}`)));
 }
 
 export default BorrarGasto;

@@ -1,25 +1,57 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "id": "/",
+  "name": "Lista de Gastos",
+  "short_name": "Gastos",
+  "description": "Registra tus gastos, revísalos por categoría y lleva el total del mes.",
+  "lang": "es-CO",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#F9F9F9",
+  "background_color": "#F9F9F9",
+  "categories": ["finance", "productivity"],
   "icons": [
+    { "src": "/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icono-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "/captura-movil.png",
+      "sizes": "540x960",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Inicio de sesión en el móvil"
     },
     {
-      "src": "logo192.png",
+      "src": "/captura-escritorio.png",
+      "sizes": "1280x720",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "form_factor": "wide",
+      "label": "Inicio de sesión en el escritorio"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "shortcuts": [
+    {
+      "name": "Agregar gasto",
+      "short_name": "Agregar",
+      "url": "/",
+      "icons": [{ "src": "/icono-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Lista de gastos",
+      "short_name": "Lista",
+      "url": "/lista",
+      "icons": [{ "src": "/icono-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Gastos por categoría",
+      "short_name": "Categorías",
+      "url": "/categorias",
+      "icons": [{ "src": "/icono-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
 }

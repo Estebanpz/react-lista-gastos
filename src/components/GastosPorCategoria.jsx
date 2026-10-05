@@ -1,4 +1,4 @@
-import React, {useEffect} from "react";
+import React from "react";
 import { Helmet } from "react-helmet";
 import { Header, Titulo } from "../elementos/Header";
 import BtnRegresar from "../elementos/BtnRegresar";
@@ -9,9 +9,6 @@ import FormatearCantidad from "../functions/ConvertirAMoneda";
 import IconoCategoria from "./../elementos/IconoCategoria";
 const GastosPorCategoria = () => {
 const gastosPorCategoria = useObtenerGastosDelMesCategoria();
-  useEffect(() => {
-    console.log(gastosPorCategoria);
-  }, [gastosPorCategoria]);
   return (
     <>
       <Helmet>
@@ -24,10 +21,9 @@ const gastosPorCategoria = useObtenerGastosDelMesCategoria();
       </Header>
       <ListaDeCategorias>
         {
-          gastosPorCategoria.map((gasto, index)=>{
-            console.log(gasto.cantidad);
+          gastosPorCategoria.map((gasto)=>{
             return(
-              <ElementoListaCategorias key={index}>
+              <ElementoListaCategorias key={gasto.categoria}>
                 <Categoria>
                   <IconoCategoria id={gasto.categoria} />
                   {gasto.categoria}

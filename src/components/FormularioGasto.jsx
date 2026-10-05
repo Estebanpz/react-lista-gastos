@@ -71,10 +71,10 @@ function FormularioGasto({gasto}) {
     //Validación de que no se ingresen campos vacios
     if (inputDescripcion !== "" && inputCantidad !== "") {
 
-      if(cantidad){
+      if(Number(cantidad) > 0){
         try {
           if(!editando){
-            await agregarGasto(
+            const resultado = await agregarGasto(
               inputDescripcion,
               Number(cantidad),
               Categoria,
@@ -83,15 +83,19 @@ function FormularioGasto({gasto}) {
             );
             cambiarAlerta({
               tipo: "exito",
-              mensaje: "Gasto Agregado Correctamente"
+              mensaje: resultado === "en-cola"
+                ? "Gasto guardado sin conexión. Se sincronizará al reconectar."
+                : "Gasto Agregado Correctamente"
             });
             
           }else if(editando){
             //Si editando es verdadero entonces es una actualización
-            await actualizarGasto(id, inputDescripcion,cantidad, Categoria, fechaSegundos);
+            const resultado = await actualizarGasto(id, inputDescripcion,cantidad, Categoria, fechaSegundos);
             cambiarAlerta({
               tipo: "exito",
-              mensaje: "Gasto Actualizado Correctamente"
+              mensaje: resultado === "en-cola"
+                ? "Cambios guardados sin conexión. Se sincronizarán al reconectar."
+                : "Gasto Actualizado Correctamente"
             });
            setTimeout(() => {
             navigate("/lista");
@@ -104,6 +108,11 @@ function FormularioGasto({gasto}) {
           cambiarEstadoAlerta(true);
         } catch (error) {
           console.log(error);
+          cambiarAlerta({
+            tipo: "error",
+            mensaje: "No se pudo guardar el gasto. Inténtalo de nuevo.",
+          });
+          cambiarEstadoAlerta(true);
         }
 
       }else{
@@ -141,7 +150,9 @@ function FormularioGasto({gasto}) {
           type="text"
           name="descripcion"
           id="descripcion"
-          placeholder="Descripcion"
+          aria-label="Descripción del gasto"
+          placeholder="Descripción…"
+          autoComplete="off"
           value={inputDescripcion}
           onChange={(e) => handleChange(e)}
         />
@@ -150,6 +161,9 @@ function FormularioGasto({gasto}) {
           type="text"
           name="cantidad"
           id="cantidad"
+          aria-label="Cantidad gastada"
+          inputMode="decimal"
+          autoComplete="off"
           placeholder="$0.000"
           value={inputCantidad}
           onChange={(e) => handleChange(e)}
@@ -157,14 +171,14 @@ function FormularioGasto({gasto}) {
       </div>
       <ContenedorBoton>
         <Boton as="button" primario conIcono type="submit">
-          {editando ? 'Actualizar Gasto': 'Agregar Gasto'} <IconoPlus />
+          {editando ? 'Actualizar Gasto': 'Agregar Gasto'} <IconoPlus aria-hidden="true" />
         </Boton>
       </ContenedorBoton>
       <Alerta 
         tipo={alerta.tipo}
         mensaje={alerta.mensaje}
         estadoAlerta={estadoAlerta}
-        cambiarEstadoAlerta={cambiarAlerta}
+        cambiarEstadoAlerta={cambiarEstadoAlerta}
       />
     </Formulario>
   );

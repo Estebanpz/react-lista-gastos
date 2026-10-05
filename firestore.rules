@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Funciones auxiliares ----
+    function logueado() {
+      return request.auth != null;
+    }
+
+    function esDueno(uid) {
+      return logueado() && request.auth.uid == uid;
+    }
+
+    function categoriaValida(c) {
+      return c in ['comida', 'cuentas y pagos', 'hogar', 'transporte',
+                   'ropa', 'salud e higiene', 'compras', 'diversion'];
+    }
+
+    // Campos que debe tener un gasto (create/update)
+    function gastoValido(d) {
+      return d.keys().hasOnly(['descripcion', 'cantidad', 'categoria', 'fecha', 'uidUsuario'])
+        && d.keys().hasAll(['descripcion', 'cantidad', 'categoria', 'fecha', 'uidUsuario'])
+        && d.descripcion is string && d.descripcion.size() > 0 && d.descripcion.size() <= 200
+        && d.cantidad is number && d.cantidad > 0
+        && d.fecha is number
+        && d.categoria is string && categoriaValida(d.categoria);
+    }
+
+    // ---- Gastos ----
+    match /gastos/{gastoId} {
+      // Solo el dueño lee (las consultas deben filtrar por uidUsuario)
+      allow read: if esDueno(resource.data.uidUsuario);
+
+      // Crear: el documento debe quedar a nombre del usuario logueado
+      allow create: if esDueno(request.resource.data.uidUsuario)
+                    && gastoValido(request.resource.data);
+
+      // Editar: solo el dueño y sin cambiar de dueño
+      allow update: if esDueno(resource.data.uidUsuario)
+                    && request.resource.data.uidUsuario == resource.data.uidUsuario
+                    && gastoValido(request.resource.data);
+
+      // Borrar: solo el dueño
+      allow delete: if esDueno(resource.data.uidUsuario);
+    }
+
+    // ---- Gastos recurrentes (nómina, recibos, créditos...) ----
+    match /recurrentes/{recurrenteId} {
+      allow read: if esDueno(resource.data.uidUsuario);
+      allow create: if esDueno(request.resource.data.uidUsuario)
+                    && request.resource.data.descripcion is string
+                    && request.resource.data.cantidad is number
+                    && request.resource.data.cantidad > 0
+                    && categoriaValida(request.resource.data.categoria);
+      allow update: if esDueno(resource.data.uidUsuario)
+                    && request.resource.data.uidUsuario == resource.data.uidUsuario;
+      allow delete: if esDueno(resource.data.uidUsuario);
+    }
+
+    // ---- Tokens de notificaciones push (por dispositivo) ----
+    match /usuarios/{uid}/tokens/{tokenId} {
+      allow read, write: if esDueno(uid);
+    }
+
+    // Todo lo demás queda denegado por defecto
+  }
+}

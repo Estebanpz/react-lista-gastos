@@ -11,7 +11,6 @@ const EditarGasto = () => {
     const { id } = useParams();
     const [gasto] =  useObtenerGasto(id);
     const {usuario} = useAuth();
-    console.log(gasto);
   return (
 
     <>

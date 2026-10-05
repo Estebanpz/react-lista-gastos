@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { Link } from "react-router-dom";
+import theme from "./../theme";
 const Boton = styled(Link)`
     background: ${(props) => props.primario ? '#5B69E2' : '#000'};
     width: ${(props) => props.conIcono ? '10rem' : '8.8rem'}; /* 250px */
@@ -18,8 +19,12 @@ const Boton = styled(Link)`
     display: inline-flex;
     justify-content: space-between;
     align-items: center;
-    outline: none;
     text-align: center;
+
+    &:focus-visible {
+        outline: 3px solid ${theme.azulClaro};
+        outline-offset: 2px;
+    }
  
     svg {
         height: ${(props) => props.iconoGrande ? '100%' : '0.75rem;'};  /* 12px */

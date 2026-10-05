@@ -1,37 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import useObtenerGastosMes from './useObtenerGastosMes';
+import CATEGORIAS from '../functions/categorias';
 
 const useObtenerGastosDelMesCategoria = () => {
-    const [gastosPorCategoria, setGastosPorCategoria] = useState([]);
     const [gastos] = useObtenerGastosMes();
-    
-    useEffect(()=>{
-        const sumaDeGastos = gastos.reduce((objetoResultante, objetoActual) => {
-            const categoriaActual = objetoActual.categoria;
-            const cantidadActual = objetoActual.cantidad;
-            objetoResultante[categoriaActual] += cantidadActual;
-            return objetoResultante;
-        }, {
-            'comida': 0,
-            'cuentas y pagos': 0,
-            'hogar': 0,
-            'transporte': 0,
-            'ropa': 0,
-            'salud e higiene': 0,
-            'compras': 0,
-            'diversion': 0,
-        });
-        //console.log(sumaDeGastos);
-        setGastosPorCategoria(Object.keys(sumaDeGastos).map((categoria)=>{
-            return {
-                categoria,
-                cantidad: sumaDeGastos[categoria]
-            }
-        }));
-        return () => setGastosPorCategoria([]);
-    }, [gastos]);
 
-    return gastosPorCategoria;
+    //Se deriva durante el render: un total por cada categoría conocida
+    return useMemo(() => {
+        const sumaDeGastos = {};
+        CATEGORIAS.forEach(({ id }) => {
+            sumaDeGastos[id] = 0;
+        });
+
+        gastos.forEach((gasto) => {
+            if (gasto.categoria in sumaDeGastos) {
+                sumaDeGastos[gasto.categoria] += Number(gasto.cantidad);
+            }
+        });
+
+        return CATEGORIAS.map(({ id }) => ({
+            categoria: id,
+            cantidad: sumaDeGastos[id],
+        }));
+    }, [gastos]);
 }
 
 export default useObtenerGastosDelMesCategoria;

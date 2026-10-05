@@ -7,72 +7,54 @@ import {
   where,
   orderBy,
   limit,
-  startAfter,
 } from "../firebase/firebaseConfig";
 import { useAuth } from "../contexts/AuthContext";
 
+//Cuántos gastos se cargan por página
+const TAMANO_PAGINA = 10;
+
 const useObtenerGastos = () => {
   const [gastos, cambiarGastos] = useState([]);
-  const [ultimoGasto, cambiarUltimoGasto] = useState(null);
+  const [limiteActual, cambiarLimiteActual] = useState(TAMANO_PAGINA);
   const [hayMasPorCargar, cambiarHayMasPorCargar] = useState(false);
 
   const { usuario } = useAuth();
 
-  const obtenerMasGastos = async () => {
-    const q = query(
-      collection(db, "gastos"),
-      where("uidUsuario", "==", usuario.uid),
-      orderBy("fecha", "desc"),
-      limit(10),
-      startAfter(ultimoGasto)
-    );
-
-    onSnapshot(q, (snapshot) => {
-      if (snapshot.docs.length > 0) {
-        cambiarUltimoGasto(snapshot.docs[snapshot.docs.length - 1]);
-        cambiarGastos(
-          gastos.concat(
-            snapshot.docs.map((gasto) => {
-              return {
-                id: gasto.id,
-                ...gasto.data(),
-              };
-            })
-          )
-        );
-      } else {
-        cambiarHayMasPorCargar(false);
-      }
-    }, (error) =>{
-      console.log(error);
-    });
+  //Cargar más = ampliar el límite de la consulta. Así hay un único listener
+  //activo, siempre se cierra al desmontar y la lista nunca queda desactualizada
+  const obtenerMasGastos = () => {
+    cambiarLimiteActual((limite) => limite + TAMANO_PAGINA);
   };
 
   useEffect(() => {
+    if (!usuario) return;
+
     const q = query(
       collection(db, "gastos"),
       where("uidUsuario", "==", usuario.uid),
       orderBy("fecha", "desc"),
-      limit(10)
+      limit(limiteActual)
     );
 
-    const unsubcribe = onSnapshot(q, (snapshot) => {
-      if (snapshot.docs.length > 0) {
-        cambiarUltimoGasto(snapshot.docs[snapshot.docs.length - 1]);
-        cambiarHayMasPorCargar(true);
-      } else {
-        cambiarHayMasPorCargar(false);
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        //Si llegaron tantos documentos como el límite, puede haber más
+        cambiarHayMasPorCargar(snapshot.docs.length === limiteActual);
+        cambiarGastos(
+          snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+        );
+      },
+      (error) => {
+        console.log(error);
       }
+    );
 
-      const gastos = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      cambiarGastos(gastos);
-    });
-
-    return () => unsubcribe();
-  }, [usuario]);
+    return () => unsubscribe();
+  }, [usuario, limiteActual]);
 
   return [gastos, obtenerMasGastos, hayMasPorCargar];
 };

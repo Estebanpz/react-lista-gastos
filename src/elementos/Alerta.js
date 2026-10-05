@@ -24,6 +24,14 @@ const slideDown = keyframes`
     }
 `;
 
+//Variante sin desplazamiento para quienes prefieren menos movimiento
+const aparecer = keyframes`
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+`;
+
 const ContenedorAlerta = styled.div`
     z-index: 1000;
     width: 100%;
@@ -34,6 +42,11 @@ const ContenedorAlerta = styled.div`
     justify-content: center;
     align-items: center;
     animation: ${slideDown} 4s ease forwards;
+
+    @media (prefers-reduced-motion: reduce) {
+        top: 1.25rem;
+        animation: ${aparecer} 4s ease forwards;
+    }
  
     p {
  
@@ -73,7 +86,7 @@ const Alerta = ({ tipo, mensaje, estadoAlerta, cambiarEstadoAlerta }) => {
         <>
         {estadoAlerta &&
 
-            <ContenedorAlerta tipo={tipo}>
+            <ContenedorAlerta tipo={tipo} role={tipo === 'error' ? 'alert' : 'status'} aria-live={tipo === 'error' ? 'assertive' : 'polite'}>
                 <p>{mensaje}</p>
             </ContenedorAlerta>
         }

@@ -38,8 +38,14 @@ const MESES = [
 
 const dias_semanas_cortos = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
+//Fecha de ejemplo para el placeholder, con el formato regional del navegador
+const formatoPlaceholder = new Intl.DateTimeFormat("es-CO", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
 const DatePeacker = ({ fecha, cambiarFecha }) => {
-  const FORMAT = "MM/dd/yyyy";
   return (
     <ContenedorInput>
       <DayPickerInput
@@ -47,7 +53,8 @@ const DatePeacker = ({ fecha, cambiarFecha }) => {
         onDayChange={(day) => cambiarFecha(day)}
         formatDate={formatDate}
         parseDate={parseDate}
-        placeholder={`${dateFnsFormat(new Date(), FORMAT)}`}
+        placeholder={formatoPlaceholder.format(new Date())}
+        inputProps={{ "aria-label": "Fecha del gasto" }}
         format="dd 'de' MMMM 'de' yyyy"
         dayPickerProps={
             {

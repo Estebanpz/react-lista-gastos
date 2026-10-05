@@ -7,6 +7,7 @@ const BarraTotal = styled.div`
     background: ${theme.verde};
     font-size: 1.25rem; /* 20px */
     letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
     font-weight: 500;
     text-transform: uppercase;
     padding: 0.62rem 2.25rem; /* 10px 40px */
@@ -23,7 +24,6 @@ const BarraTotal = styled.div`
 
 const BarraTotalGastado = () => {
     const { totalGastado } = useTotalGastado();
-    console.log(totalGastado);
     return (
         <BarraTotal>
             <p>Total Gastado en el Mes: </p>

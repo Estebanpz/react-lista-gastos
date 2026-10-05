@@ -33,7 +33,9 @@ const ElementoLista = styled.li`
     }
  
     &:hover button,
-    &:hover a {
+    &:hover a,
+    &:focus-within button,
+    &:focus-within a {
         opacity: 1;
     }
 `;
@@ -84,6 +86,7 @@ const Descripcion = styled.div`
 const Valor = styled.div`
     font-size: 1.25rem; /* 20px */
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
     justify-content: flex-end;
  
     @media (max-width: 50rem) { /* 80px */
@@ -112,7 +115,6 @@ const ContenedorBotones = styled.div`
 `;
  
 const BotonAccion = styled.button`
-    outline: none;
     background: ${theme.grisClaro};
     border: none;
     width: 2.5rem; /* 40px */
@@ -123,7 +125,7 @@ const BotonAccion = styled.button`
     cursor: pointer;
     border-radius: 0.31rem; /* 5px */
     margin-left: 0.625rem; /* 10px */
-    transition: .3s ease all;
+    transition: background-color .3s ease, opacity .3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -131,6 +133,11 @@ const BotonAccion = styled.button`
  
     &:hover {
         background: ${theme.grisClaro2};
+    }
+
+    &:focus-visible {
+        outline: 3px solid ${theme.colorPrimario};
+        outline-offset: 2px;
     }
  
     svg {
@@ -178,11 +185,15 @@ const BotonCargarMas = styled.button`
     display: inline-flex;
     justify-content: space-between;
     align-items: center;
-    outline: none;
-    transition: .3s ease all;
+    transition: background-color .3s ease;
  
     &:hover {
         background: ${theme.grisClaro2};
+    }
+
+    &:focus-visible {
+        outline: 3px solid ${theme.colorPrimario};
+        outline-offset: 2px;
     }
 `;
  
