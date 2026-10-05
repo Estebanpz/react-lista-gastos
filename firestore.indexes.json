@@ -4,8 +4,42 @@
       "collectionGroup": "gastos",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "uidUsuario", "order": "ASCENDING" },
-        { "fieldPath": "fecha", "order": "DESCENDING" }
+        {
+          "fieldPath": "uidUsuario",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fecha",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "recurrentes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uidUsuario",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "proximaFecha",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "recurrentes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "activo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "proximaFecha",
+          "order": "ASCENDING"
+        }
       ]
     }
   ],

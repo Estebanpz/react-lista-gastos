@@ -50,3 +50,9 @@ playwright-report/
 # Estado local de la herramienta de diseño impeccable (capturas, modo en vivo)
 .impeccable/
 firebase.reglas.json
+
+# Worker de Cloudflare (recordatorios): secretos locales, estado de wrangler y dependencias
+.dev.vars
+.dev.vars.*
+.wrangler/
+worker-recordatorios/node_modules/

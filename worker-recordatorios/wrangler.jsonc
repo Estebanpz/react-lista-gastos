@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "recordatorios-gastos",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  // Sin URL pública: el Worker solo reacciona al cron (no hay handler fetch)
+  "workers_dev": false,
+  "preview_urls": false,
+  // 13:00 UTC = 08:00 en Bogotá (Colombia no tiene horario de verano). El cron de Cloudflare siempre es UTC.
+  "triggers": { "crons": ["0 13 * * *"] },
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  // No secreto. La clave de la cuenta de servicio es el secreto GOOGLE_SA_JSON (wrangler secret put)
+  "vars": { "GCP_PROJECT_ID": "react-lista-gastos-5d794" }
+}
