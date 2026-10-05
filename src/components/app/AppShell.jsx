@@ -4,7 +4,7 @@ import styled, { keyframes } from "styled-components";
 import theme from "../../theme";
 import logoMarca from "../../img/logo-marca.png";
 import cerrarSesion from "../../firebase/cerrarSesion";
-import { IconoInicio, IconoLista, IconoCategorias, IconoSalir } from "../iconos";
+import { IconoInicio, IconoLista, IconoCategorias, IconoPagos, IconoSalir } from "../iconos";
 
 const entrar = keyframes`from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; }`;
 
@@ -160,10 +160,10 @@ const Enlace = styled(NavLink)`
   flex-direction: column;
   align-items: center;
   gap: 0.2rem;
-  min-width: 4.5rem;
+  min-width: 4rem;
   min-height: 3.25rem;
   justify-content: center;
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.5rem;
   border-radius: 1rem;
   font-size: 0.75rem;
   font-weight: 600;
@@ -248,9 +248,11 @@ const Contenido = styled.main`
   }
 `;
 
-//Cada cambio de pantalla entra con un pequeño desplazamiento (se desactiva con «reducir movimiento»)
+//Cada cambio de pantalla entra con un pequeño desplazamiento (se desactiva con «reducir movimiento»).
+//`backwards` y no `both`: al terminar no queda un transform activo, que convertiría a esta caja en la
+//referencia de los elementos `position: fixed` de dentro (los botones flotantes quedaban a media página).
 const Pantalla = styled.div`
-  animation: ${entrar} 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ${entrar} 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -291,6 +293,10 @@ const AppShell = () => {
         <Enlace to="/categorias">
           <IconoCategorias tam={22} />
           Categorías
+        </Enlace>
+        <Enlace to="/recurrentes">
+          <IconoPagos tam={22} />
+          Pagos
         </Enlace>
         <Salir type="button" onClick={() => cerrarSesion()}>
           <IconoSalir tam={22} />

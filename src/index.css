@@ -26,3 +26,9 @@ body {
       font-size: 14px;
   }
 }
+/* Sin el recuadro gris del toque en Android/iOS: cada control ya tiene su estado :active/:hover y su foco visible */
+a,
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}

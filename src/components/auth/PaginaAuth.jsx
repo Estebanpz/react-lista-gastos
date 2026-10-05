@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import { Helmet } from "react-helmet";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { destinoTrasLogin } from "../../functions/destino";
 import styled, { keyframes } from "styled-components";
 import { useDrag } from "@use-gesture/react";
 import theme from "../../theme";
@@ -411,7 +412,7 @@ const vibrar = () => {
 const PaginaAuth = () => {
   const { usuario } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
   const modo = pathname === RUTAS.crear ? "crear" : "entrar";
   const indice = modo === "crear" ? 1 : 0;
 
@@ -426,9 +427,10 @@ const PaginaAuth = () => {
   //La URL refleja el panel activo, así se puede compartir o recargar en el mismo sitio
   const cambiarModo = useCallback(
     (nuevo) => {
-      if (nuevo !== modo) navigate(RUTAS[nuevo], { replace: true });
+      //Se conserva el destino pendiente (state.desde) al cambiar de panel
+      if (nuevo !== modo) navigate(RUTAS[nuevo], { replace: true, state });
     },
-    [modo, navigate]
+    [modo, navigate, state]
   );
 
   //Error de validación o de acceso: sacudida del panel + vibración corta (Android)
@@ -484,7 +486,7 @@ const PaginaAuth = () => {
     if (!e.currentTarget.contains(e.relatedTarget)) cambiarEnfocado(false);
   };
 
-  if (usuario) return <Navigate to="/" replace />;
+  if (usuario) return <Navigate to={destinoTrasLogin(state)} replace />;
 
   const titulo = modo === "crear" ? "Crear cuenta" : "Iniciar sesión";
 

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { destinoTrasLogin } from "../../functions/destino";
 import CampoTexto from "./CampoTexto";
 import Interruptor from "./Interruptor";
 import { IconoCorreo, IconoCandado, IconoOjo, IconoOjoTachado, IconoFlecha, IconoRegresar } from "./iconos";
@@ -12,6 +13,7 @@ import { errorCorreo } from "./validaciones";
 //  entrar → correo + contraseña · recuperar → pedir el enlace · recuperado → confirmación
 const FormularioInicioSesion = ({ alError }) => {
   const navigate = useNavigate();
+  const { state } = useLocation();
   const [vista, cambiarVista] = useState("entrar");
   const [correo, cambiarCorreo] = useState("");
   const [clave, cambiarClave] = useState("");
@@ -43,7 +45,7 @@ const FormularioInicioSesion = ({ alError }) => {
     cambiarEnviando(true);
     try {
       await iniciarSesion(correo.trim(), clave, recordar);
-      navigate("/");
+      navigate(destinoTrasLogin(state), { replace: true });
     } catch (error) {
       cambiarEnviando(false);
       fallar({ general: mensajeInicioSesion(error) });

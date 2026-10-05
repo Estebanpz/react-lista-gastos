@@ -10,6 +10,7 @@ import guardado from "../img/undraw/guardado.svg";
 import categorias from "../img/undraw/categorias.svg";
 import categoriaNueva from "../img/undraw/categoria-nueva.svg";
 import sinConexion from "../img/undraw/sin-conexion.svg";
+import recordatorio from "../img/undraw/recordatorio.svg";
 
 const ARCHIVOS = {
   "sin-gastos": sinGastos,
@@ -19,6 +20,7 @@ const ARCHIVOS = {
   categorias,
   "categoria-nueva": categoriaNueva,
   "sin-conexion": sinConexion,
+  recordatorio,
 };
 
 const Img = styled.img`

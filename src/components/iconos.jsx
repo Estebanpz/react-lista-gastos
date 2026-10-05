@@ -24,4 +24,6 @@ export const IconoCalendario = (p) => (<Icono {...p}><rect x="3" y="5" width="18
 export const IconoNota = (p) => (<Icono {...p}><path d="M4 6h16M4 12h16M4 18h10" /></Icono>);
 export const IconoEtiqueta = (p) => (<Icono {...p}><path d="M3 12V4h8l10 10-8 8L3 12z" /><circle cx="7.5" cy="8.5" r="1" /></Icono>);
 export const IconoInstalar = (p) => (<Icono {...p}><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></Icono>);
+//Pagos recurrentes: calendario con flecha de repetición
+export const IconoPagos = (p) => (<Icono {...p}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4" /><path d="M15.5 14.5a3.5 3.5 0 1 1-1-2.5" /><path d="M15 11v1.5h-1.5" /></Icono>);
 export const IconoRegresar = (p) => (<Icono {...p}><path d="M19 12H5" /><path d="m11 18-6-6 6-6" /></Icono>);

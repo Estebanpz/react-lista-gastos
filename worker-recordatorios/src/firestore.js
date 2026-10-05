@@ -51,9 +51,14 @@ export const perfiles = async (env, token, pedir, uids) => {
   return Object.fromEntries(filas.filter((f) => f.found).map((f) => { const d = leerDocumento(f.found); return [d.id, d]; }));
 };
 
-//Todos los tokens de dispositivos (colección de grupo «tokens»); `uid` sale de la ruta usuarios/{uid}/tokens/{id}
+//Tokens de dispositivos (colección de grupo «tokens»), los más recientes primero; `uid` sale de la ruta
+//usuarios/{uid}/tokens/{id}. El orden usa el índice de grupo de `tokens.actualizado` (firestore.indexes.json).
 export const todosLosTokens = async (env, token, pedir) => {
-  const docs = await consulta(env, token, pedir, { from: [{ collectionId: "tokens", allDescendants: true }], limit: 500 });
+  const docs = await consulta(env, token, pedir, {
+    from: [{ collectionId: "tokens", allDescendants: true }],
+    orderBy: [{ field: { fieldPath: "actualizado" }, direction: "DESCENDING" }],
+    limit: 500,
+  });
   return docs.map((d) => ({ ...d, uid: d.ruta.split("/usuarios/")[1].split("/")[0] }));
 };
 

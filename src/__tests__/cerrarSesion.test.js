@@ -1,3 +1,5 @@
+const mockDesactivar = jest.fn();
+jest.mock("../firebase/notificaciones", () => ({ desactivarAvisos: (...a) => mockDesactivar(...a) }));
 jest.mock("../firebase/firebaseConfig", () => ({
   auth: { id: "auth" },
   db: { id: "db" },
@@ -16,6 +18,7 @@ describe("cerrarSesion", () => {
   beforeEach(() => {
     //CRA resetea los mocks entre pruebas (resetMocks: true), por eso se definen aquí
     llamadas = [];
+    mockDesactivar.mockImplementation(async () => { llamadas.push("avisos"); });
     config.terminate.mockImplementation(async () => { llamadas.push("terminate"); });
     config.signOut.mockImplementation(async () => { llamadas.push("signOut"); });
     config.clearIndexedDbPersistence.mockImplementation(async () => { llamadas.push("clear"); });
@@ -28,15 +31,22 @@ describe("cerrarSesion", () => {
     console.log.mockRestore();
   });
 
-  test("termina Firestore, cierra sesión, borra la caché y recarga en /inicio-sesion (en ese orden)", async () => {
+  test("quita los avisos del dispositivo, termina Firestore, cierra sesión, borra la caché y recarga (en ese orden)", async () => {
     await cerrarSesion();
-    expect(llamadas).toEqual(["terminate", "signOut", "clear"]);
+    expect(llamadas).toEqual(["avisos", "terminate", "signOut", "clear"]);
     expect(window.location.assign).toHaveBeenCalledWith("/inicio-sesion");
   });
 
   test("si no se puede borrar la caché (otra pestaña abierta) igual redirige", async () => {
     config.clearIndexedDbPersistence.mockRejectedValueOnce(new Error("failed-precondition"));
     await cerrarSesion();
+    expect(window.location.assign).toHaveBeenCalledWith("/inicio-sesion");
+  });
+
+  test("si quitar los avisos falla, igual cierra la sesión", async () => {
+    mockDesactivar.mockRejectedValueOnce(new Error("sin red"));
+    await cerrarSesion();
+    expect(llamadas).toEqual(["terminate", "signOut", "clear"]);
     expect(window.location.assign).toHaveBeenCalledWith("/inicio-sesion");
   });
 

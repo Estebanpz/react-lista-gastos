@@ -12,7 +12,8 @@
 //  - No intercepta ni cachea Firestore ni Auth: los datos offline los maneja Firestore con
 //    su propia caché local, que se borra al cerrar sesión. Así nunca quedan respuestas
 //    autenticadas en la caché del service worker.
-//  - No usa importScripts de terceros.
+//  - No usa importScripts de terceros (ni el SDK de Firebase: los push se manejan con el evento nativo).
+//  - Muestra los recordatorios de pagos que llegan por push (texto armado aquí, nunca el recibido).
 
 import { clientsClaim } from 'workbox-core';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -20,6 +21,7 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { precacheAndRoute, createHandlerBoundToURL, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
+import { armarNotificacion, destinoAlTocar, OPCIONES_BASE } from './pwa/avisos';
 
 clientsClaim();
 cleanupOutdatedCaches();
@@ -47,7 +49,7 @@ registerRoute(
 registerRoute(
   ({ url }) =>
     url.origin === self.location.origin &&
-    /^\/(manifest\.json|favicon\.ico|apple-touch-icon\.png|icono-[^/]+\.png)$/.test(url.pathname),
+    /^\/(manifest\.json|favicon\.ico|apple-touch-icon\.png|icono-[^/]+\.png|insignia-96\.png)$/.test(url.pathname),
   new StaleWhileRevalidate({
     cacheName: 'iconos-app',
     plugins: [new ExpirationPlugin({ maxEntries: 10 })],
@@ -81,4 +83,37 @@ self.addEventListener('message', (evento) => {
   if (evento.data && evento.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+// Recordatorio de pagos enviado por el Worker de Cloudflare a través de FCM (solo `data`).
+// El contenido se valida en src/pwa/avisos.js; un mensaje inválido muestra un aviso genérico.
+self.addEventListener('push', (evento) => {
+  let carga = null;
+  try {
+    carga = evento.data ? evento.data.json() : null;
+  } catch (error) {
+    carga = null;
+  }
+  const { titulo, opciones } = armarNotificacion(carga);
+  const tareas = [self.registration.showNotification(titulo, { ...OPCIONES_BASE, ...opciones })];
+  if (self.navigator.setAppBadge && opciones.data.cantidad) {
+    tareas.push(self.navigator.setAppBadge(opciones.data.cantidad).catch(() => {}));
+  }
+  evento.waitUntil(Promise.all(tareas));
+});
+
+// Al tocar la notificación se abre la pantalla de pagos (siempre del mismo origen), reutilizando
+// una ventana abierta de la app si la hay.
+self.addEventListener('notificationclick', (evento) => {
+  evento.notification.close();
+  const destino = destinoAlTocar(evento.notification.data, self.location.origin);
+  evento.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ventanas) => {
+      const abierta = ventanas.find((v) => new URL(v.url).origin === self.location.origin);
+      if (abierta) {
+        return abierta.focus().then((v) => (v && 'navigate' in v ? v.navigate(destino) : v));
+      }
+      return self.clients.openWindow(destino);
+    })
+  );
 });

@@ -2,12 +2,13 @@
   "name": "worker-recordatorios",
   "version": "1.0.0",
   "private": true,
-  "description": "Worker de Cloudflare con Cron Trigger que envía los recordatorios de pagos recurrentes por FCM",
+  "description": "Worker de Cloudflare con Cron Trigger que env\u00eda los recordatorios de pagos recurrentes por FCM",
   "type": "module",
   "scripts": {
-    "test": "node --test",
+    "test": "node --test test/recordatorios.test.js test/emulador.test.js",
     "dev": "wrangler dev --test-scheduled",
-    "desplegar": "wrangler deploy"
+    "desplegar": "wrangler deploy",
+    "test:emulador": "node scripts/emulador.js"
   },
   "devDependencies": {
     "wrangler": "^4.147.0"

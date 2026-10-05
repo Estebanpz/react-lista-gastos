@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import ReactDOM from "react-dom";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import styled, { keyframes } from "styled-components";
@@ -16,6 +17,7 @@ import Insignia from "../categorias/Insignia";
 import Hoja from "../Hoja";
 import Ilustracion from "../Ilustracion";
 import BannerInstalar from "../BannerInstalar";
+import ProximosPagos from "../recurrentes/ProximosPagos";
 import { IconoMas, IconoDerecha } from "../iconos";
 
 const subir = keyframes`from { opacity: 0; transform: translateY(0.75rem); } to { opacity: 1; transform: none; }`;
@@ -26,7 +28,7 @@ const Cuadricula = styled.div`
   gap: 1rem;
   margin-top: 1.25rem;
 
-  @media (min-width: 60rem) {
+  @media ${theme.dosColumnas} {
     grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
     gap: 1.25rem;
     align-items: start;
@@ -107,7 +109,7 @@ const Mini = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 
-  @media (min-width: 60rem) {
+  @media ${theme.dosColumnas} {
     grid-template-columns: 1fr;
   }
 
@@ -192,7 +194,7 @@ const Flotante = styled.button`
   position: fixed;
   right: 1.25rem;
   bottom: calc(5.75rem + env(safe-area-inset-bottom));
-  z-index: 40; /* debajo de la barra de navegación (60) y de las hojas (2000) */
+  z-index: 150; /* se pinta en <body>: encima del marco de la app (100), debajo de avisos (1500+) y hojas (2000) */
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -241,7 +243,7 @@ const PaginaInicio = () => {
   const hoy = useMemo(() => new Date(), []);
   const [desde, hasta] = useMemo(() => rangoMes(hoy), [hoy]);
   const { gastos, cargando } = useGastosRango(desde, hasta);
-  const esEscritorio = useMediaQuery("(min-width: 60rem)");
+  const esEscritorio = useMediaQuery(theme.pantallaAncha); //con barra lateral el registro va en la página; si no, botón flotante + hoja
   const [hojaAbierta, cambiarHojaAbierta] = useState(false);
   const [dia, cambiarDia] = useState(null);
 
@@ -353,14 +355,28 @@ const PaginaInicio = () => {
               !cargando && <Vacio><p>Cuando registres gastos, los últimos aparecerán aquí.</p></Vacio>
             )}
           </Tarjeta>
+
+          <Tarjeta aria-labelledby="proximos-titulo" $retraso={0.25}>
+            <Cabecera>
+              <h2 id="proximos-titulo">Próximos pagos</h2>
+              <VerTodos to="/recurrentes">
+                Ver todos <IconoDerecha tam={16} />
+              </VerTodos>
+            </Cabecera>
+            <ProximosPagos />
+          </Tarjeta>
         </Columna>
       </Cuadricula>
 
       {!esEscritorio && (
         <>
-          <Flotante type="button" onClick={() => cambiarHojaAbierta(true)}>
-            <IconoMas tam={22} /> Agregar gasto
-          </Flotante>
+          {/* Fuera del contenedor animado: un transform en un ancestro rompe position: fixed */}
+          {ReactDOM.createPortal(
+            <Flotante type="button" onClick={() => cambiarHojaAbierta(true)}>
+              <IconoMas tam={22} /> Agregar gasto
+            </Flotante>,
+            document.body
+          )}
           <Hoja abierta={hojaAbierta} alCerrar={() => cambiarHojaAbierta(false)} titulo="Nuevo gasto" subtitulo="Regístralo en segundos">
             <RegistroRapido idPrefijo="hoja" alTerminar={() => cambiarHojaAbierta(false)} />
           </Hoja>

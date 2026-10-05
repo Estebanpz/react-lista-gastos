@@ -135,3 +135,26 @@ describe("etiquetas y estado", () => {
     expect(etiquetaVencimiento(rec, "2026-11-13")).toBe("venció hace 3 días");
   });
 });
+
+describe("textos de frecuencia y fecha", () => {
+  const { describirFrecuencia, fechaLegible } = require("../functions/recurrencias");
+  it("describe cada frecuencia", () => {
+    expect(describirFrecuencia({ frecuencia: "mensual", dia: 10 })).toBe("Mensual · día 10");
+    expect(describirFrecuencia({ frecuencia: "quincenal", dia: 0 })).toBe("Quincenal (15 y último)");
+    expect(describirFrecuencia({ frecuencia: "semanal", dia: 5 })).toBe("Semanal · los viernes");
+    expect(describirFrecuencia({ frecuencia: "anual", dia: 20, mes: 4 })).toBe("Anual · 20 de abril");
+  });
+  it("fecha legible con año solo si cambia", () => {
+    expect(fechaLegible("2026-11-10", "2026-10-05")).toBe("10 de noviembre");
+    expect(fechaLegible("2027-01-15", "2026-10-05")).toBe("15 de enero de 2027");
+  });
+});
+
+describe("vencimientosHasta", () => {
+  const { vencimientosHasta } = require("../functions/recurrencias");
+  it("cuenta cada vencimiento dentro del plazo (quincenal = 2 al mes, semanal = 4-5)", () => {
+    expect(vencimientosHasta({ frecuencia: "quincenal", dia: 0, mes: 0, proximaFecha: "2026-10-15" }, "2026-11-14")).toEqual(["2026-10-15", "2026-10-31"]);
+    expect(vencimientosHasta({ frecuencia: "semanal", dia: 5, mes: 0, proximaFecha: "2026-10-09" }, "2026-11-05")).toHaveLength(4);
+    expect(vencimientosHasta({ frecuencia: "mensual", dia: 10, mes: 0, proximaFecha: "2026-12-10" }, "2026-11-05")).toEqual([]);
+  });
+});

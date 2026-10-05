@@ -30,7 +30,7 @@ const Diseno = styled.div`
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 
-  @media (min-width: 60rem) {
+  @media ${theme.dosColumnas} {
     grid-template-columns: minmax(0, 1fr) 22rem;
     gap: 1.5rem;
     align-items: start;
@@ -354,7 +354,7 @@ const Grupo = styled.section`
 const Panel = styled.aside`
   display: none;
 
-  @media (min-width: 60rem) {
+  @media ${theme.dosColumnas} {
     display: block;
     position: sticky;
     top: 2rem;
@@ -416,7 +416,7 @@ const PERIODOS = [
 const PaginaLista = () => {
   const navigate = useNavigate();
   const { porId } = useCategorias();
-  const esEscritorio = useMediaQuery("(min-width: 60rem)");
+  const esEscritorio = useMediaQuery(theme.dosColumnas); //panel de detalle al lado (si no, en hoja)
   const hoy = useMemo(() => new Date(), []);
   const [periodo, cambiarPeriodo] = useState("mes");
   const [ancla, cambiarAncla] = useState(hoy);

@@ -22,6 +22,9 @@ const Acciones = styled.div`
   bottom: 0;
   display: flex;
   width: ${ANCHO_ACCIONES}px;
+  /* Cerrada, la fila tapa las acciones: se ocultan del todo (si no, asoman por el antialias de las
+     esquinas redondeadas y quedan enfocables con el teclado aunque no se vean) */
+  visibility: ${(p) => (p.$visibles ? "visible" : "hidden")};
 `;
 
 const Accion = styled.button`
@@ -95,7 +98,7 @@ const FilaDeslizable = ({ children, seleccionada, alElegir, alEditar, alBorrar, 
 
   return (
     <Contenedor>
-      <Acciones aria-hidden={!abierta}>
+      <Acciones aria-hidden={!abierta} $visibles={abierta || arrastrando || desplazamiento !== 0}>
         <Accion type="button" $fondo="#4352c9" tabIndex={abierta ? 0 : -1} onClick={alEditar}>
           <IconoEditar tam={20} /> Editar
         </Accion>

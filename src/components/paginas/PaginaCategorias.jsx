@@ -158,7 +158,7 @@ const Cuerpo = styled.div`
   grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 
-  @media (min-width: 60rem) {
+  @media ${theme.dosColumnas} {
     grid-template-columns: 22rem minmax(0, 1fr);
     align-items: start;
   }

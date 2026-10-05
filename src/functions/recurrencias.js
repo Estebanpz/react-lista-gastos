@@ -91,3 +91,33 @@ export const etiquetaVencimiento = (rec, hoy) => {
   if (dias > 1) return `en ${dias} días`;
   return dias === -1 ? "venció ayer" : `venció hace ${-dias} días`;
 };
+
+const DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"];
+export const NOMBRES_DIA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+export const NOMBRES_MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+//«Mensual · día 10», «Quincenal (15 y último)», «Semanal · los viernes», «Anual · 20 de abril»
+export const describirFrecuencia = (rec) => {
+  if (rec.frecuencia === "quincenal") return "Quincenal (15 y último)";
+  if (rec.frecuencia === "semanal") return `Semanal · los ${DIAS_SEMANA[rec.dia - 1]}`;
+  if (rec.frecuencia === "anual") return `Anual · ${rec.dia} de ${NOMBRES_MES[rec.mes - 1]}`;
+  return `Mensual · día ${rec.dia}`;
+};
+
+//«10 de noviembre» (con año si no es el de `hoy`)
+export const fechaLegible = (texto, hoy) => {
+  const [a, m, d] = aNumeros(texto);
+  const anioHoy = hoy ? aNumeros(hoy)[0] : a;
+  return `${d} de ${NOMBRES_MES[m - 1]}${a !== anioHoy ? ` de ${a}` : ""}`;
+};
+
+//Vencimientos de un pago entre su próxima fecha y `hasta` (incluidas las fechas ya vencidas sin pagar)
+export const vencimientosHasta = (rec, hasta) => {
+  const fechas = [];
+  let fecha = rec.proximaFecha;
+  while (fecha && fecha <= hasta && fechas.length < 40) {
+    fechas.push(fecha);
+    fecha = siguienteFecha(rec, fecha);
+  }
+  return fechas;
+};

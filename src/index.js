@@ -10,6 +10,7 @@ import Error404 from "./components/Error404";
 import AppShell from "./components/app/AppShell";
 import PaginaInicio from "./components/paginas/PaginaInicio";
 import { CategoriasProvider } from "./contexts/CategoriasContext";
+import { RecurrentesProvider } from "./contexts/RecurrentesContext";
 import EstadoConexion from "./components/EstadoConexion";
 import AvisoActualizacion from "./components/AvisoActualizacion";
 import { registrarServiceWorker } from "./pwa/registroServiceWorker";
@@ -22,6 +23,7 @@ import RutaPrivada from "./components/RutaPrivada";
 const PaginaEditar = lazy(() => import("./components/paginas/PaginaEditar"));
 const PaginaCategorias = lazy(() => import("./components/paginas/PaginaCategorias"));
 const PaginaLista = lazy(() => import("./components/paginas/PaginaLista"));
+const PaginaRecurrentes = lazy(() => import("./components/paginas/PaginaRecurrentes"));
 //Cargando las fuentes de Google Fonts
 WebFont.load({
   google: {
@@ -35,6 +37,7 @@ const Index = () => {
     <>
       <AuthProvider>
           <CategoriasProvider>
+          <RecurrentesProvider>
           <BrowserRouter>
             <Suspense fallback={<p role="status" style={{ textAlign: "center" }}>Cargando…</p>}>
               <Routes>
@@ -45,12 +48,14 @@ const Index = () => {
                   <Route path="/" element={<PaginaInicio />} />
                   <Route path="/lista" element={<PaginaLista />} />
                   <Route path="/categorias" element={<PaginaCategorias />} />
+                  <Route path="/recurrentes" element={<PaginaRecurrentes />} />
                   <Route path="/editar-gasto/:id" element={<PaginaEditar />} />
                   <Route path="*" element={<Error404 />} />
                 </Route>
               </Routes>
             </Suspense>
           </BrowserRouter>
+          </RecurrentesProvider>
           </CategoriasProvider>
       </AuthProvider>
       <EstadoConexion />
