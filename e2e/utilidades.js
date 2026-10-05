@@ -13,8 +13,9 @@ const registrarUsuario = async (page, correo) => {
   await panel.getByLabel("Correo electrónico").fill(correo);
   await panel.getByLabel("Contraseña", { exact: true }).fill(CLAVE);
   await panel.getByLabel("Repetir contraseña").fill(CLAVE);
-  await panel.getByRole("button", { name: /^crear cuenta/i }).click();
-  await expect(page.getByRole("heading", { name: "Agregar Gasto" })).toBeVisible();
+  //Enter envía el formulario (en el móvil el botón se mueve mientras la cabecera se contrae al enfocar)
+  await panel.getByLabel("Repetir contraseña").press("Enter");
+  await expect(page.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible();
 };
 
 //Inicia sesión desde la pantalla de acceso; «recordar» = estado del interruptor «Recordarme»
@@ -26,7 +27,14 @@ const iniciarSesionUI = async (page, correo, recordar = true) => {
   const interruptor = panel.getByRole("switch", { name: "Recordarme" });
   if ((await interruptor.isChecked()) !== recordar) await interruptor.setChecked(recordar, { force: true });
   await panel.getByRole("button", { name: /^iniciar sesión/i }).click();
-  await expect(page.getByRole("heading", { name: "Agregar Gasto" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible();
+};
+
+//Cierra sesión y espera la recarga completa que borra los datos locales
+//(la ruta cambia antes de esa recarga; navegar justo en medio aborta la navegación)
+const cerrarSesionUI = async (page) => {
+  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Cerrar sesión" }).click()]);
+  await page.waitForURL("**/inicio-sesion");
 };
 
 //Desliza el dedo en horizontal con eventos táctiles reales (CDP)
@@ -48,11 +56,17 @@ const codigosDeRecuperacion = async () => {
   return (j.oobCodes || []).filter((c) => c.requestType === "PASSWORD_RESET").map((c) => c.email);
 };
 
-//Llena el formulario y lo envía; devuelve sin esperar el mensaje (cada prueba lo comprueba)
-const enviarGasto = async (page, descripcion, cantidad) => {
-  await page.getByLabel("Descripción del gasto").fill(descripcion);
-  await page.getByLabel("Cantidad gastada").fill(String(cantidad));
-  await page.getByRole("button", { name: /^agregar gasto/i }).click();
+//Llena el registro rápido de Inicio (escritorio) y lo envía; devuelve sin esperar la confirmación
+const enviarGasto = async (page, descripcion, cantidad, categoria) => {
+  await page.getByLabel("Valor del gasto (COP)").fill(String(cantidad));
+  if (categoria) await page.getByRole("radio", { name: categoria }).click();
+  await page.getByLabel("Detalle").fill(descripcion);
+  await page.getByRole("button", { name: /^guardar gasto/i }).click();
+};
+
+//Va a una sección con la navegación principal (barra lateral en escritorio)
+const irA = async (page, nombre) => {
+  await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: nombre }).click();
 };
 
 //Espera a que el service worker esté activo y controlando esta página
@@ -61,17 +75,19 @@ const esperarServiceWorker = async (page) => {
   await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
 };
 
-//Documentos de la colección «gastos» según el emulador de Firestore (lectura de administrador)
-const gastosEnEmulador = async () => {
+//Documentos de una colección según el emulador de Firestore (lectura de administrador)
+const documentosEnEmulador = async (coleccion) => {
   const respuesta = await fetch(
-    `http://127.0.0.1:${puertos.firestore}/v1/projects/demo-e2e/databases/(default)/documents/gastos`,
+    `http://127.0.0.1:${puertos.firestore}/v1/projects/demo-e2e/databases/(default)/documents/${coleccion}`,
     { headers: { Authorization: "Bearer owner" } }
   );
   const json = await respuesta.json();
-  return (json.documents || []).map((d) => d.fields.descripcion.stringValue);
+  return (json.documents || []).map((d) => ({ id: d.name.split("/").pop(), ...Object.fromEntries(Object.entries(d.fields).map(([k, v]) => [k, v.stringValue ?? v.integerValue ?? v.doubleValue])) }));
 };
+
+const gastosEnEmulador = async () => (await documentosEnEmulador("gastos")).map((d) => d.descripcion);
 
 //Para cortar la comunicación con los emuladores y simular que no hay red
 const RUTA_EMULADORES = new RegExp(`127\\.0\\.0\\.1:(${puertos.firestore}|${puertos.auth})`);
 
-module.exports = { RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, esperarServiceWorker, gastosEnEmulador };
+module.exports = { cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, esperarServiceWorker, gastosEnEmulador };

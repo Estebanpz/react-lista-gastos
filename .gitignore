@@ -49,3 +49,4 @@ playwright-report/
 
 # Estado local de la herramienta de diseño impeccable (capturas, modo en vivo)
 .impeccable/
+firebase.reglas.json

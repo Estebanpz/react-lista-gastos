@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { correoUnico, registrarUsuario, enviarGasto } = require("./utilidades");
+const { correoUnico, registrarUsuario, enviarGasto, irA } = require("./utilidades");
 
 //Devuelve todo el contenido (como texto) de las bases IndexedDB de Firestore
 const leerBasesFirestore = (page) =>
@@ -29,8 +29,8 @@ test.describe("Cerrar sesión", () => {
   test("borra los gastos guardados en el dispositivo y cierra la sesión", async ({ page }) => {
     await registrarUsuario(page, correoUnico("sesion"));
     await enviarGasto(page, "GastoSecretoXYZ", 4321);
-    await expect(page.getByText("Gasto Agregado Correctamente")).toBeVisible();
-    await page.getByRole("link", { name: "Lista de Gastos" }).click();
+    await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
+    await irA(page, "Lista");
     await expect(page.getByText("GastoSecretoXYZ")).toBeVisible();
 
     //sanidad de la prueba: antes de salir, el dato SÍ está en el dispositivo
@@ -38,7 +38,6 @@ test.describe("Cerrar sesión", () => {
     expect(antes.cantidadBases).toBeGreaterThan(0);
     expect(antes.texto).toContain("GastoSecretoXYZ");
 
-    await page.getByRole("button", { name: "Volver" }).click();
     await page.getByRole("button", { name: "Cerrar sesión" }).click();
 
     //Primero cambia la ruta (React) y poco después llega la recarga completa que borra los datos:

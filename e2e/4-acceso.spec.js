@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, CLAVE } = require("./utilidades");
+const { cerrarSesionUI, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, CLAVE } = require("./utilidades");
 
 test.describe("Acceso en el móvil (táctil)", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
@@ -78,25 +78,23 @@ test.describe("Acceso: Recordarme y sesión", () => {
     await registrarUsuario(page, correo); //se registra recordando
     const otra = await context.newPage();
     await otra.goto("/");
-    await expect(otra.getByRole("heading", { name: "Agregar Gasto" })).toBeVisible(); //sigue con sesión
+    await expect(otra.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible(); //sigue con sesión
     await otra.close();
 
-    await page.getByRole("button", { name: "Cerrar sesión" }).click();
-    await page.waitForURL("**/inicio-sesion");
+    await cerrarSesionUI(page);
 
     await iniciarSesionUI(page, correo, false); //ahora SIN recordar
     const nueva = await context.newPage();
     await nueva.goto("/");
     await expect(nueva.getByRole("tab", { name: "Iniciar sesión", selected: true })).toBeVisible(); //no hay sesión en la pestaña nueva
     await nueva.close();
-    await expect(page.getByRole("heading", { name: "Agregar Gasto" })).toBeVisible(); //la original sigue
+    await expect(page.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible(); //la original sigue
   });
 
   test("una contraseña incorrecta muestra un mensaje que no revela si el correo existe", async ({ page }) => {
     const correo = correoUnico("clave");
     await registrarUsuario(page, correo);
-    await page.getByRole("button", { name: "Cerrar sesión" }).click();
-    await page.waitForURL("**/inicio-sesion");
+    await cerrarSesionUI(page);
 
     const panel = page.getByRole("tabpanel", { name: "Iniciar sesión" });
     await panel.getByLabel("Correo electrónico").fill(correo);
@@ -111,8 +109,7 @@ test.describe("Acceso: recuperar contraseña", () => {
   test("envía el correo de recuperación y responde igual para un correo que no existe", async ({ page, context }) => {
     const existente = correoUnico("existe");
     await registrarUsuario(page, existente);
-    await page.getByRole("button", { name: "Cerrar sesión" }).click();
-    await page.waitForURL("**/inicio-sesion");
+    await cerrarSesionUI(page);
 
     //Cada solicitud va en una página nueva: así no choca con la recarga que hace «Cerrar sesión»
     const pedir = async (correo) => {

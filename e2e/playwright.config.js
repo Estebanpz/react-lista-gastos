@@ -17,6 +17,7 @@ module.exports = defineConfig({
     channel: "chrome",
     headless: true,
     serviceWorkers: "allow",
+    screenshot: "only-on-failure",
     locale: "es-CO",
     viewport: { width: 1280, height: 800 },
   },

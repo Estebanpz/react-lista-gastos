@@ -1,28 +1,27 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
-import App from "./App";
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import WebFont from "webfontloader";
 //Elementos styled components
-import Contenedor from "./elementos/Contenedor";
 // *********************  COMPONENTES *********************
 import PaginaAuth from "./components/auth/PaginaAuth";
 import Error404 from "./components/Error404";
-import Fondo from "./elementos/Fondo";
+import AppShell from "./components/app/AppShell";
+import PaginaInicio from "./components/paginas/PaginaInicio";
+import { CategoriasProvider } from "./contexts/CategoriasContext";
 import EstadoConexion from "./components/EstadoConexion";
 import AvisoActualizacion from "./components/AvisoActualizacion";
 import { registrarServiceWorker } from "./pwa/registroServiceWorker";
 import "./pwa/instalacion"; //debe cargarse al arrancar para no perder el evento de instalación
 
 import { AuthProvider } from "./contexts/AuthContext";
-import { TotalGastadoProvider } from "./contexts/TotalGastadoEnElMesContext";
 import RutaPrivada from "./components/RutaPrivada";
 
 //Las pantallas secundarias se cargan solo cuando se visitan (menor bundle inicial)
-const EditarGasto = lazy(() => import("./components/EditarGasto"));
-const GastoPorCategoria = lazy(() => import("./components/GastosPorCategoria"));
-const ListaDeGastos = lazy(() => import("./components/ListaDeGatos"));
+const PaginaEditar = lazy(() => import("./components/paginas/PaginaEditar"));
+const PaginaCategorias = lazy(() => import("./components/paginas/PaginaCategorias"));
+const PaginaLista = lazy(() => import("./components/paginas/PaginaLista"));
 //Cargando las fuentes de Google Fonts
 WebFont.load({
   google: {
@@ -31,72 +30,31 @@ WebFont.load({
   },
 });
 
-//Las pantallas de la app (gastos, lista, categorías) van dentro de la tarjeta blanca.
-//El acceso (iniciar sesión / crear cuenta) ocupa toda la ventana y no usa este contenedor.
-const DisenoApp = () => (
-  <Contenedor>
-    <Outlet />
-  </Contenedor>
-);
-
 const Index = () => {
   return (
     <>
       <AuthProvider>
-        <TotalGastadoProvider>
+          <CategoriasProvider>
           <BrowserRouter>
             <Suspense fallback={<p role="status" style={{ textAlign: "center" }}>Cargando…</p>}>
               <Routes>
                 <Route path="/inicio-sesion" element={<PaginaAuth />} />
                 <Route path="/crear-cuenta" element={<PaginaAuth />} />
 
-                <Route element={<DisenoApp />}>
+                <Route element={<RutaPrivada><AppShell /></RutaPrivada>}>
+                  <Route path="/" element={<PaginaInicio />} />
+                  <Route path="/lista" element={<PaginaLista />} />
+                  <Route path="/categorias" element={<PaginaCategorias />} />
+                  <Route path="/editar-gasto/:id" element={<PaginaEditar />} />
                   <Route path="*" element={<Error404 />} />
-
-                  <Route
-                    path="/"
-                    element={
-                      <RutaPrivada>
-                        <App />
-                      </RutaPrivada>
-                    }
-                  />
-
-                  <Route
-                    path="/categorias"
-                    element={
-                      <RutaPrivada>
-                        <GastoPorCategoria />
-                      </RutaPrivada>
-                    }
-                  />
-
-                  <Route
-                    path="/lista"
-                    element={
-                      <RutaPrivada>
-                        <ListaDeGastos />
-                      </RutaPrivada>
-                    }
-                  />
-
-                  <Route
-                    path="/editar-gasto/:id"
-                    element={
-                      <RutaPrivada>
-                        <EditarGasto />
-                      </RutaPrivada>
-                    }
-                  />
                 </Route>
               </Routes>
             </Suspense>
           </BrowserRouter>
-        </TotalGastadoProvider>
+          </CategoriasProvider>
       </AuthProvider>
       <EstadoConexion />
       <AvisoActualizacion />
-      <Fondo />
     </>
   );
 };

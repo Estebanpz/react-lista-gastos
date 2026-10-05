@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { RUTA_EMULADORES, correoUnico, registrarUsuario, enviarGasto, esperarServiceWorker, gastosEnEmulador } = require("./utilidades");
+const { irA, RUTA_EMULADORES, correoUnico, registrarUsuario, enviarGasto, esperarServiceWorker, gastosEnEmulador } = require("./utilidades");
 
 test.describe("Offline: app y datos", () => {
   test("abre sin conexión, muestra lo ya visto, guarda en cola y sincroniza al volver", async ({ page, context }) => {
@@ -7,8 +7,8 @@ test.describe("Offline: app y datos", () => {
     await registrarUsuario(page, correoUnico("offline"));
     await esperarServiceWorker(page);
     await enviarGasto(page, "Arriendo", 1500);
-    await expect(page.getByText("Gasto Agregado Correctamente")).toBeVisible();
-    await page.getByRole("link", { name: "Lista de Gastos" }).click();
+    await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
+    await irA(page, "Lista");
     await expect(page.getByText("Arriendo")).toBeVisible();
 
     //-- sin conexión (se corta el navegador Y los emuladores, para que sea real)
@@ -17,14 +17,14 @@ test.describe("Offline: app y datos", () => {
     await context.setOffline(true);
 
     await page.reload(); //la app abre desde el precaché del service worker
-    await expect(page.getByRole("heading", { name: "Lista de Gastos" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Lista de gastos" })).toBeVisible();
     await expect(page.getByText("Arriendo")).toBeVisible(); //dato desde la caché de Firestore
     await expect(page.getByRole("status").filter({ hasText: /sin conexión/i })).toBeVisible();
 
     //un gasto nuevo sin conexión: la app no se queda colgada y avisa que quedó en cola
-    await page.getByRole("button", { name: "Volver" }).click();
+    await irA(page, "Inicio");
     await enviarGasto(page, "Mercado offline", 2500);
-    await expect(page.getByText(/guardado sin conexión/i)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/lo guardamos en tu dispositivo/i)).toBeVisible({ timeout: 20_000 });
     expect(await gastosEnEmulador()).not.toContain("Mercado offline"); //aún no llegó al servidor
 
     //-- vuelve la conexión: se sincroniza solo
@@ -39,9 +39,9 @@ test.describe("Offline: app y datos", () => {
     await esperarServiceWorker(page);
     await context.route(RUTA_EMULADORES, (r) => r.abort("internetdisconnected"));
     await context.setOffline(true);
-    for (const [ruta, titulo] of [["/categorias", "Gastos por Categoria"], ["/lista", "Lista de Gastos"]]) {
+    for (const [ruta, titulo] of [["/categorias", "Categorías"], ["/lista", "Lista de gastos"]]) {
       await page.goto(ruta);
-      await expect(page.getByRole("heading", { name: titulo })).toBeVisible();
+      await expect(page.getByRole("heading", { name: titulo, level: 1 })).toBeVisible();
     }
     await context.setOffline(false);
   });
