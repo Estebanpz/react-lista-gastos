@@ -11,9 +11,32 @@ service cloud.firestore {
       return logueado() && request.auth.uid == uid;
     }
 
+    //Categorías que trae la app (deben coincidir con src/functions/categorias.js)
+    function categoriaBase(c) {
+      return c in ['comida', 'cuentas y pagos', 'hogar', 'transporte', 'ropa', 'salud e higiene',
+                   'compras', 'diversion', 'nomina', 'recibos', 'creditos', 'impuestos'];
+    }
+
+    //Una categoría propia es un id de documento de /categorias que pertenece a la misma persona
+    function categoriaPropia(c) {
+      return c.matches('^[A-Za-z0-9]{20}$')
+        && get(/databases/$(database)/documents/categorias/$(c)).data.uidUsuario == request.auth.uid;
+    }
+
     function categoriaValida(c) {
-      return c in ['comida', 'cuentas y pagos', 'hogar', 'transporte',
-                   'ropa', 'salud e higiene', 'compras', 'diversion'];
+      return categoriaBase(c) || categoriaPropia(c);
+    }
+
+    //Iconos y colores permitidos al crear una categoría propia (src/components/categorias/iconos.jsx y src/functions/paleta.js)
+    function categoriaPropiaValida(d) {
+      return d.keys().hasOnly(['nombre', 'icono', 'color', 'uidUsuario', 'creada'])
+        && d.keys().hasAll(['nombre', 'icono', 'color', 'uidUsuario'])
+        && d.nombre is string && d.nombre.size() > 0 && d.nombre.size() <= 30
+        && d.icono in ['cubiertos', 'cartera', 'casa', 'bus', 'camiseta', 'corazon', 'bolsa', 'estrella',
+                       'equipo', 'recibo', 'tarjeta', 'banco', 'megafono', 'caja', 'camion', 'maletin',
+                       'billete', 'tienda', 'llave', 'taza', 'flechas', 'avion', 'pata', 'formas']
+        && d.color in ['indigo', 'verde', 'naranja', 'azul', 'rosa', 'violeta', 'turquesa', 'coral']
+        && (!('creada' in d) || d.creada is timestamp);
     }
 
     // Campos que debe tener un gasto (create/update)
@@ -54,6 +77,17 @@ service cloud.firestore {
                     && categoriaValida(request.resource.data.categoria);
       allow update: if esDueno(resource.data.uidUsuario)
                     && request.resource.data.uidUsuario == resource.data.uidUsuario;
+      allow delete: if esDueno(resource.data.uidUsuario);
+    }
+
+    // ---- Categorías propias de cada persona ----
+    match /categorias/{categoriaId} {
+      allow read: if esDueno(resource.data.uidUsuario);
+      allow create: if esDueno(request.resource.data.uidUsuario)
+                    && categoriaPropiaValida(request.resource.data);
+      allow update: if esDueno(resource.data.uidUsuario)
+                    && request.resource.data.uidUsuario == resource.data.uidUsuario
+                    && categoriaPropiaValida(request.resource.data);
       allow delete: if esDueno(resource.data.uidUsuario);
     }
 
