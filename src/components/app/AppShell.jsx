@@ -4,7 +4,9 @@ import styled, { keyframes } from "styled-components";
 import theme from "../../theme";
 import logoMarca from "../../img/logo-marca.png";
 import cerrarSesion from "../../firebase/cerrarSesion";
-import { IconoInicio, IconoLista, IconoCategorias, IconoPagos, IconoSalir } from "../iconos";
+import AvisoPlan from "../plan/AvisoPlan";
+import { useCliente } from "../../contexts/ClienteContext";
+import { IconoInicio, IconoLista, IconoCategorias, IconoPagos, IconoClientes, IconoPlan, IconoSalir } from "../iconos";
 
 const entrar = keyframes`from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; }`;
 
@@ -261,6 +263,7 @@ const Pantalla = styled.div`
 
 const AppShell = () => {
   const { pathname } = useLocation();
+  const { esAdmin, cargando } = useCliente();
   return (
     <Marco>
       <SaltarAlContenido href="#contenido">Saltar al contenido</SaltarAlContenido>
@@ -282,22 +285,36 @@ const AppShell = () => {
             <small>Control de gastos</small>
           </div>
         </MarcaLateral>
-        <Enlace to="/" end>
-          <IconoInicio tam={22} />
-          Inicio
-        </Enlace>
-        <Enlace to="/lista">
-          <IconoLista tam={22} />
-          Lista
-        </Enlace>
-        <Enlace to="/categorias">
-          <IconoCategorias tam={22} />
-          Categorías
-        </Enlace>
-        <Enlace to="/recurrentes">
-          <IconoPagos tam={22} />
-          Pagos
-        </Enlace>
+        {!esAdmin && !cargando && (
+          <>
+            <Enlace to="/" end>
+              <IconoInicio tam={22} />
+              Inicio
+            </Enlace>
+            <Enlace to="/lista">
+              <IconoLista tam={22} />
+              Lista
+            </Enlace>
+            <Enlace to="/categorias">
+              <IconoCategorias tam={22} />
+              Categorías
+            </Enlace>
+            <Enlace to="/recurrentes">
+              <IconoPagos tam={22} />
+              Pagos
+            </Enlace>
+            <Enlace to="/plan">
+              <IconoPlan tam={22} />
+              Mi plan
+            </Enlace>
+          </>
+        )}
+        {esAdmin && (
+          <Enlace to="/admin">
+            <IconoClientes tam={22} />
+            Clientes
+          </Enlace>
+        )}
         <Salir type="button" onClick={() => cerrarSesion()}>
           <IconoSalir tam={22} />
           Cerrar sesión
@@ -306,6 +323,7 @@ const AppShell = () => {
 
       <Contenido id="contenido" tabIndex={-1}>
         <Pantalla key={pathname}>
+          <AvisoPlan />
           <Outlet />
         </Pantalla>
       </Contenido>

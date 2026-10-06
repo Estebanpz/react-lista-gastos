@@ -1,6 +1,9 @@
-//Worker de recordatorios: solo reacciona al Cron Trigger (no expone ninguna URL).
-//Los registros son JSON con conteos: nunca ids de personas, tokens, descripciones ni montos.
+//Worker de Finanzas. Dos entradas:
+//  - scheduled: el cron diario de avisos (pagos recurrentes y planes de clientes).
+//  - fetch: API del panel de super admin (crear clientes). Exige ID token de un super admin.
+//Los registros son JSON con conteos: nunca ids de personas, correos, tokens, descripciones ni montos.
 import { ejecutar } from "./recordatorios.js";
+import { manejarSolicitud } from "./api.js";
 
 export default {
   async scheduled(controller, env, ctx) {
@@ -12,5 +15,14 @@ export default {
           throw e;
         }),
     );
+  },
+
+  async fetch(request, env) {
+    try {
+      return await manejarSolicitud(request, env);
+    } catch (e) {
+      console.error(JSON.stringify({ evento: "api-error", mensaje: e.message }));
+      return new Response(JSON.stringify({ error: "error-interno" }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
   },
 };

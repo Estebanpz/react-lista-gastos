@@ -15,6 +15,8 @@ const construir = (version) => {
     REACT_APP_EMULADOR_AUTH_PUERTO: String(puertos.auth),
     REACT_APP_EMULADOR_FIRESTORE_PUERTO: String(puertos.firestore),
     REACT_APP_VERSION: version,
+    REACT_APP_API_CLIENTES: `http://127.0.0.1:${puertos.api}`,
+    REACT_APP_WHATSAPP_RENOVAR: "573000000000",
     REACT_APP_FIREBASE_API_KEY: "api-key-falsa-e2e",
     REACT_APP_FIREBASE_AUTH_DOMAIN: "demo-e2e.firebaseapp.com",
     REACT_APP_FIREBASE_PROJECT_ID: "demo-e2e",

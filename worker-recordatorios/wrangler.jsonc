@@ -4,8 +4,9 @@
   "main": "src/index.js",
   // Actualizar a la fecha del día al desplegar (skill workers-best-practices) y volver a correr las pruebas
   "compatibility_date": "2026-10-05",
-  // Sin URL pública: el Worker solo reacciona al cron (no hay handler fetch)
-  "workers_dev": false,
+  // URL workers.dev activada para la API del panel de super admin (POST /clientes). Se protege con el ID token de Firebase +
+  // pertenencia a super_admins; el resto de rutas devuelve 404. El cron sigue funcionando igual.
+  "workers_dev": true,
   "preview_urls": false,
   // 13:00 UTC = 08:00 en Bogotá (Colombia no tiene horario de verano). El cron de Cloudflare siempre es UTC.
   "triggers": { "crons": ["0 13 * * *"] },

@@ -8,6 +8,7 @@ jest.mock("firebase/firestore", () => ({
   deleteDoc: jest.fn(),
   writeBatch: jest.fn(),
   serverTimestamp: jest.fn(() => "ahora"),
+  increment: jest.fn((n) => ({ incremento: n })),
 }));
 
 import * as fs from "firebase/firestore";
@@ -17,6 +18,7 @@ const rec = { id: "r1", descripcion: "Nómina", cantidad: 1500000, categoria: "n
 
 describe("firebase/recurrentes", () => {
   beforeEach(() => {
+    fs.increment.mockImplementation((n) => ({ incremento: n }));
     fs.collection.mockImplementation(() => "col");
     fs.doc.mockImplementation((...partes) => (partes.length === 1 ? { id: "nuevoId" } : partes.slice(1).join("/")));
     fs.setDoc.mockResolvedValue();
@@ -27,9 +29,12 @@ describe("firebase/recurrentes", () => {
   });
 
   test("crear normaliza los campos como las reglas (quincenal sin día, mes solo en anual)", async () => {
-    const r = await crearRecurrente({ descripcion: "  Nómina  ", cantidad: "1500000", categoria: "nomina", frecuencia: "quincenal", dia: 15, mes: 4, proximaFecha: "2026-10-15" });
-    expect(r).toEqual({ id: "nuevoId", estado: "sincronizado" });
-    expect(fs.setDoc).toHaveBeenCalledWith({ id: "nuevoId" }, {
+    fs.doc.mockReturnValueOnce({ id: "ana_1" });
+    const r = await crearRecurrente({ descripcion: "  Nómina  ", cantidad: "1500000", categoria: "nomina", frecuencia: "quincenal", dia: 15, mes: 4, proximaFecha: "2026-10-15" }, "ana_1");
+    expect(r).toEqual({ id: "ana_1", estado: "sincronizado" });
+    //el id es la ranura del cupo (`{uid}_{n}`), no uno generado al azar
+    expect(fs.doc).toHaveBeenCalledWith({ id: "db" }, "recurrentes", "ana_1");
+    expect(fs.setDoc).toHaveBeenCalledWith({ id: "ana_1" }, {
       descripcion: "Nómina", cantidad: 1500000, categoria: "nomina", frecuencia: "quincenal", dia: 0, mes: 0,
       proximaFecha: "2026-10-15", activo: true, creado: "ahora", uidUsuario: "ana",
     });
@@ -51,13 +56,16 @@ describe("firebase/recurrentes", () => {
     });
     //31 de enero → el siguiente es el 28 de febrero (mes corto)
     expect(mockLote.update).toHaveBeenCalledWith("recurrentes/r1", { proximaFecha: "2026-02-28" });
+    //y suma 1 al contador de uso del mes (límite del plan); el +1 lo calcula el servidor
+    expect(mockLote.set).toHaveBeenCalledWith(expect.stringMatching(/^uso\/ana_\d{4}_\d{1,2}$/), { gastos: { incremento: 1 }, uidUsuario: "ana" }, { merge: true });
     expect(mockLote.commit).toHaveBeenCalledTimes(1);
   });
 
   test("registrar dos veces el mismo vencimiento escribe el MISMO gasto (no duplica)", async () => {
     await registrarPago(rec, { cantidad: 1, fecha: new Date() });
     await registrarPago(rec, { cantidad: 1, fecha: new Date() });
-    expect(mockLote.set.mock.calls[0][0]).toBe(mockLote.set.mock.calls[1][0]);
+    const gastos = mockLote.set.mock.calls.filter(([ruta]) => ruta.startsWith("gastos/"));
+    expect(gastos[0][0]).toBe(gastos[1][0]);
   });
 
   test("omitir avanza sin crear gasto", async () => {

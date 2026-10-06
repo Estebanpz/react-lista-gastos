@@ -138,7 +138,7 @@ const FilaRecurrente = ({ recurrente, categoria, hoy, seleccionada, alElegir, al
           <EstadoPago recurrente={recurrente} hoy={hoy} />
         </Lado>
       </Principal>
-      {sePuedeRegistrar(recurrente, hoy) && (
+      {alRegistrar && sePuedeRegistrar(recurrente, hoy) && (
         <Pie>
           <BotonPagar type="button" $vencido={estado === "vencido"} onClick={alRegistrar}>
             <IconoCheck tam={18} />

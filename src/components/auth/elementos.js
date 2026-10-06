@@ -52,12 +52,19 @@ export const BotonPrincipal = styled.button`
   transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   touch-action: manipulation;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #4c5ad6;
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: scale(0.985);
+  }
+
+  &:disabled {
+    background: #C3C9F2;
+    color: #4A5568;
+    box-shadow: none;
+    cursor: not-allowed;
   }
 
   &:focus-visible {

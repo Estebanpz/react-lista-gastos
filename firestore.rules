@@ -11,15 +11,46 @@ service cloud.firestore {
       return logueado() && request.auth.uid == uid;
     }
 
+    // Super admin: existe un documento super_admins/{uid}. Esa colección NO se puede escribir desde la app:
+    // se crea a mano en la consola de Firebase (sin claves ni scripts). Se evalúa solo cuando hace falta.
+    function esAdmin() {
+      return logueado() && exists(/databases/$(database)/documents/super_admins/$(request.auth.uid));
+    }
+
+    // ---- Plan del cliente (clientes/{uid}, lo escribe solo el super admin) ----
+    // Con un plan vencido o suspendido la persona solo puede LEER y descargar sus datos (modo solo lectura).
+    function planVigente(uid) {
+      let c = get(/databases/$(database)/documents/clientes/$(uid)).data;
+      return c.estado in ['prueba', 'activo'] && request.time <= c.vence;
+    }
+
+    // Contador de gastos del mes (UTC, igual que claveUso en src/functions/planes.js)
+    function claveUso(uid) {
+      // El mes se cuenta en hora de Colombia (UTC-5, sin horario de verano), no en UTC: si no, un gasto de las 8 p. m.
+      // del último día del mes caería en el mes siguiente
+      let local = request.time - duration.value(5, 'h');
+      return uid + '_' + string(local.year()) + '_' + string(local.month());
+    }
+
+    // Cada gasto nuevo debe ir en el mismo lote que el aumento de +1 del contador del mes, sin pasar del límite del plan
+    function cupoDeGastos(uid) {
+      let uso = /databases/$(database)/documents/uso/$(claveUso(uid));
+      let antes = exists(uso) ? get(uso).data.gastos : 0;
+      return existsAfter(uso)
+        && getAfter(uso).data.gastos == antes + 1
+        && getAfter(uso).data.gastos <= get(/databases/$(database)/documents/clientes/$(uid)).data.limites.gastosMes;
+    }
+
     //Categorías que trae la app (deben coincidir con src/functions/categorias.js)
     function categoriaBase(c) {
       return c in ['comida', 'cuentas y pagos', 'hogar', 'transporte', 'ropa', 'salud e higiene',
                    'compras', 'diversion', 'nomina', 'recibos', 'creditos', 'impuestos'];
     }
 
-    //Una categoría propia es un id de documento de /categorias que pertenece a la misma persona
+    //Una categoría propia es un id de documento de /categorias que pertenece a la misma persona: un id automático
+    //(antiguas) o una ranura `{uid}_{n}` del cupo del plan
     function categoriaPropia(c) {
-      return c.matches('^[A-Za-z0-9]{20}$')
+      return c.matches('^[A-Za-z0-9_]{3,140}$')
         && get(/databases/$(database)/documents/categorias/$(c)).data.uidUsuario == request.auth.uid;
     }
 
@@ -56,12 +87,15 @@ service cloud.firestore {
 
       // Crear: el documento debe quedar a nombre del usuario logueado
       allow create: if esDueno(request.resource.data.uidUsuario)
-                    && gastoValido(request.resource.data);
+                    && gastoValido(request.resource.data)
+                    && planVigente(request.resource.data.uidUsuario)
+                    && cupoDeGastos(request.resource.data.uidUsuario);
 
-      // Editar: solo el dueño y sin cambiar de dueño
+      // Editar: solo el dueño, sin cambiar de dueño y con el plan vigente
       allow update: if esDueno(resource.data.uidUsuario)
                     && request.resource.data.uidUsuario == resource.data.uidUsuario
-                    && gastoValido(request.resource.data);
+                    && gastoValido(request.resource.data)
+                    && planVigente(resource.data.uidUsuario);
 
       // Borrar: solo el dueño
       allow delete: if esDueno(resource.data.uidUsuario);
@@ -92,17 +126,31 @@ service cloud.firestore {
         && d.creado is timestamp;
     }
 
+    // Cupo por ranuras: el id debe ser `{uid}_{n}` con 1 <= n <= tope del plan. Un id es único, así que nunca hay más de
+    // `tope` documentos. Es canónico (sin ceros a la izquierda) para que `uid_01` no sea una segunda ranura 1.
+    function ranuraValida(id, uid, tope) {
+      let p = id.split('_');
+      return p.size() == 2 && p[0] == uid && int(p[1]) >= 1 && int(p[1]) <= tope && id == uid + '_' + string(int(p[1]));
+    }
+
+    function topeDe(uid, campo) {
+      return get(/databases/$(database)/documents/clientes/$(uid)).data.limites[campo];
+    }
+
     match /recurrentes/{recurrenteId} {
       allow read: if esDueno(resource.data.uidUsuario);
       allow create: if esDueno(request.resource.data.uidUsuario)
+                    && ranuraValida(recurrenteId, request.auth.uid, topeDe(request.auth.uid, 'pagosActivos'))
                     && recurrenteValido(request.resource.data)
                     && !('ultimoAviso' in request.resource.data)
-                    && request.resource.data.creado == request.time;
+                    && request.resource.data.creado == request.time
+                    && planVigente(request.resource.data.uidUsuario);
       allow update: if esDueno(resource.data.uidUsuario)
                     && request.resource.data.uidUsuario == resource.data.uidUsuario
                     && request.resource.data.creado == resource.data.creado
                     && request.resource.data.get('ultimoAviso', null) == resource.data.get('ultimoAviso', null)
-                    && recurrenteValido(request.resource.data);
+                    && recurrenteValido(request.resource.data)
+                    && planVigente(resource.data.uidUsuario);
       allow delete: if esDueno(resource.data.uidUsuario);
     }
 
@@ -110,11 +158,91 @@ service cloud.firestore {
     match /categorias/{categoriaId} {
       allow read: if esDueno(resource.data.uidUsuario);
       allow create: if esDueno(request.resource.data.uidUsuario)
-                    && categoriaPropiaValida(request.resource.data);
+                    && ranuraValida(categoriaId, request.auth.uid, topeDe(request.auth.uid, 'categorias'))
+                    && categoriaPropiaValida(request.resource.data)
+                    && planVigente(request.resource.data.uidUsuario);
       allow update: if esDueno(resource.data.uidUsuario)
                     && request.resource.data.uidUsuario == resource.data.uidUsuario
-                    && categoriaPropiaValida(request.resource.data);
+                    && categoriaPropiaValida(request.resource.data)
+                    && planVigente(resource.data.uidUsuario);
       allow delete: if esDueno(resource.data.uidUsuario);
+    }
+
+    // ---- Super admin: se crea a mano en la consola (super_admins/{uid}); nadie lo escribe desde la app ----
+    match /super_admins/{uid} {
+      allow read: if esDueno(uid);
+      allow write: if false;
+    }
+
+    // ---- Planes de los clientes: solo el super admin los escribe; cada cliente lee el suyo ----
+    function limitesValidos(l) {
+      return l is map
+        && l.keys().hasOnly(['gastosMes', 'pagosActivos', 'categorias', 'dispositivos', 'mesesHistorial'])
+        && l.keys().hasAll(['gastosMes', 'pagosActivos', 'categorias', 'dispositivos', 'mesesHistorial'])
+        && l.gastosMes is int && l.gastosMes >= 0 && l.gastosMes <= 1000000
+        && l.pagosActivos is int && l.pagosActivos >= 0 && l.pagosActivos <= 10000
+        && l.categorias is int && l.categorias >= 0 && l.categorias <= 10000
+        && l.dispositivos is int && l.dispositivos >= 0 && l.dispositivos <= 100
+        && l.mesesHistorial is int && l.mesesHistorial >= 0 && l.mesesHistorial <= 600;
+    }
+
+    function clienteValido(d) {
+      return d.keys().hasOnly(['correo', 'nombre', 'plan', 'estado', 'vence', 'limites', 'notas', 'creado', 'actualizado', 'ultimoAvisoPlan'])
+        && d.keys().hasAll(['correo', 'plan', 'estado', 'vence', 'limites', 'creado', 'actualizado'])
+        && d.correo is string && d.correo.size() >= 3 && d.correo.size() <= 120
+        && (!('nombre' in d) || (d.nombre is string && d.nombre.size() <= 60))
+        && d.plan in ['prueba', 'basico', 'plus', 'negocio']
+        && d.estado in ['prueba', 'activo', 'suspendido']
+        && d.vence is timestamp
+        && limitesValidos(d.limites)
+        && (!('notas' in d) || (d.notas is string && d.notas.size() <= 200))
+        // lo escribe el Worker de avisos (cuenta de servicio); aquí solo se permite que exista
+        && (!('ultimoAvisoPlan' in d) || d.ultimoAvisoPlan is string)
+        && d.creado is timestamp
+        && d.actualizado == request.time;
+    }
+
+    match /clientes/{uid} {
+      allow read: if esDueno(uid) || esAdmin();
+      allow create: if esAdmin() && clienteValido(request.resource.data);
+      allow update: if esAdmin() && clienteValido(request.resource.data)
+                    && request.resource.data.creado == resource.data.creado;
+      allow delete: if esAdmin();
+    }
+
+    // ---- Uso mensual (contador de gastos). El id es «uid_año_mes». El cliente solo suma +1 ----
+    match /uso/{usoId} {
+      // Se decide por el id (uid_año_mes), no por el contenido: el documento puede no existir todavía y la app lo escucha
+      allow read: if esAdmin() || (logueado() && usoId.matches(request.auth.uid + '_[0-9]+_[0-9]+'));
+      allow create: if esDueno(request.resource.data.uidUsuario)
+                    && usoId == claveUso(request.auth.uid)
+                    && request.resource.data.keys().hasOnly(['gastos', 'uidUsuario'])
+                    && request.resource.data.gastos == 1
+                    && planVigente(request.auth.uid)
+                    && get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.limites.gastosMes >= 1;
+      allow update: if esDueno(resource.data.uidUsuario)
+                    && usoId == claveUso(request.auth.uid)
+                    && request.resource.data.keys().hasOnly(['gastos', 'uidUsuario'])
+                    && request.resource.data.uidUsuario == resource.data.uidUsuario
+                    && request.resource.data.gastos == resource.data.gastos + 1
+                    && planVigente(request.auth.uid)
+                    && request.resource.data.gastos <= get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.limites.gastosMes;
+    }
+
+    // ---- Historial de pagos del plan (lo registra el super admin; cada cliente ve los suyos) ----
+    match /pagosPlan/{pagoId} {
+      allow read: if esDueno(resource.data.uidCliente) || esAdmin();
+      allow create: if esAdmin()
+                    && request.resource.data.keys().hasOnly(['uidCliente', 'correo', 'plan', 'monto', 'referencia', 'fechaPago', 'venceAntes', 'venceDespues', 'creado'])
+                    && request.resource.data.keys().hasAll(['uidCliente', 'plan', 'monto', 'fechaPago', 'venceDespues', 'creado'])
+                    && request.resource.data.uidCliente is string
+                    && request.resource.data.plan in ['prueba', 'basico', 'plus', 'negocio']
+                    && request.resource.data.monto is number && request.resource.data.monto >= 0 && request.resource.data.monto <= 100000000
+                    && (!('referencia' in request.resource.data) || (request.resource.data.referencia is string && request.resource.data.referencia.size() <= 80))
+                    && request.resource.data.fechaPago is timestamp
+                    && request.resource.data.venceDespues is timestamp
+                    && request.resource.data.creado == request.time;
+      allow update, delete: if false; // un pago registrado no se edita: se corrige con otro asiento
     }
 
     // ---- Perfil de notificaciones de cada persona ----

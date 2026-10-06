@@ -8,17 +8,46 @@ const correoUnico = (prefijo) => `${prefijo}-${Date.now()}-${Math.floor(Math.ran
 
 //No hay registro en la app (acceso por invitación): la cuenta se crea en el emulador de Auth, igual que el
 //administrador la crea en la consola de Firebase, y luego se entra por la pantalla real de inicio de sesión
-const crearCuenta = async (correo) => {
+const crearCuenta = async (correo, plan = {}) => {
   const respuesta = await fetch(
     `http://127.0.0.1:${puertos.auth}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=api-key-falsa-e2e`,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: correo, password: CLAVE, returnSecureToken: true }) }
   );
   if (!respuesta.ok) throw new Error(`No se pudo crear la cuenta de prueba (${respuesta.status})`);
+  const { localId } = await respuesta.json();
+  //Sin documento de plan las reglas no dejan registrar nada: el administrador lo crea al dar de alta a la persona
+  if (plan !== null) await asignarPlan(localId, correo, plan);
+  return localId;
+};
+
+
+//Escribe clientes/{uid} (y, si se pide, super_admins/{uid}) en el emulador con acceso de propietario (se salta las reglas).
+//Por defecto: plan Negocio activo y vigente. `diasVence` negativo = ya vencido.
+const asignarPlan = async (uid, correo, { plan = "negocio", estado = "activo", diasVence = 400, limites, admin = false } = {}) => {
+  //Límites del catálogo real de la app (así las pruebas no se desfasan cuando cambian los paquetes)
+  const { PLANES } = await import("../src/functions/planes.js");
+  limites = limites || PLANES[plan].limites;
+  const base = `http://127.0.0.1:${puertos.firestore}/v1/projects/demo-e2e/databases/(default)/documents`;
+  const escribir = async (ruta, campos) => {
+    const r = await fetch(`${base}/${ruta}`, { method: "PATCH", headers: { Authorization: "Bearer owner", "Content-Type": "application/json" }, body: JSON.stringify({ fields: campos }) });
+    if (!r.ok) throw new Error(`No se pudo sembrar ${ruta} (${r.status})`);
+  };
+  const ahora = new Date().toISOString();
+  await escribir(`clientes/${uid}`, {
+    correo: { stringValue: correo },
+    plan: { stringValue: plan },
+    estado: { stringValue: estado },
+    vence: { timestampValue: new Date(Date.now() + diasVence * 86400000).toISOString() },
+    limites: { mapValue: { fields: Object.fromEntries(Object.entries(limites).map(([k, v]) => [k, { integerValue: String(v) }])) } },
+    creado: { timestampValue: ahora },
+    actualizado: { timestampValue: ahora },
+  });
+  if (admin) await escribir(`super_admins/${uid}`, { correo: { stringValue: correo } });
 };
 
 //Crea la cuenta y entra; espera la pantalla de inicio
-const registrarUsuario = async (page, correo) => {
-  await crearCuenta(correo);
+const registrarUsuario = async (page, correo, plan) => {
+  await crearCuenta(correo, plan);
   await iniciarSesionUI(page, correo);
 };
 
@@ -31,7 +60,8 @@ const iniciarSesionUI = async (page, correo, recordar = true) => {
   const interruptor = panel.getByRole("switch", { name: "Recordarme" });
   if ((await interruptor.isChecked()) !== recordar) await interruptor.setChecked(recordar, { force: true });
   await panel.getByRole("button", { name: /^iniciar sesión/i }).click();
-  await expect(page.getByRole("heading", { name: "Hola, así van tus gastos" })).toBeVisible();
+  //Un cliente cae en Inicio; el super admin, en su panel
+  await expect(page.getByRole("heading", { name: /^(Hola, así van tus gastos|Clientes)$/ })).toBeVisible();
 };
 
 //Cierra sesión y espera la recarga completa que borra los datos locales
@@ -105,4 +135,4 @@ const gastosEnEmulador = async () => (await documentosEnEmulador("gastos")).map(
 //Para cortar la comunicación con los emuladores y simular que no hay red
 const RUTA_EMULADORES = new RegExp(`127\\.0\\.0\\.1:(${puertos.firestore}|${puertos.auth})`);
 
-module.exports = { crearCuenta, cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };
+module.exports = { crearCuenta, asignarPlan, cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };

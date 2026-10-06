@@ -4,6 +4,7 @@ module.exports = {
   auth: 9199,
   firestore: 8180,
   hosting: 5050,
+  api: 8799, //Worker de clientes: no existe, las pruebas lo simulan con page.route
   hub: 4600,
   logging: 4700,
 };

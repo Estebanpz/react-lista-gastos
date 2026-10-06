@@ -1,6 +1,6 @@
 //Acceso a las APIs de Google desde un Worker sin librerías: JWT RS256 firmado con WebCrypto →
 //access token OAuth2 de la cuenta de servicio. Docs: developers.google.com/identity/protocols/oauth2/service-account
-const SCOPES = "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging";
+const SCOPES = "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging https://www.googleapis.com/auth/identitytoolkit";
 const URL_TOKEN = "https://oauth2.googleapis.com/token";
 
 const base64url = (datos) => {

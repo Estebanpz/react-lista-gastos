@@ -1,8 +1,9 @@
 import { db, auth } from "./firebaseConfig";
-import { collection, doc, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 import { getUnixTime } from "date-fns";
 import esperarEscritura from "./esperarEscritura";
 import { siguienteFecha } from "../functions/recurrencias";
+import { sumarUsoDeGasto } from "./AgregarGasto";
 
 //Pagos recurrentes (nómina, recibos, créditos…). Colección `recurrentes`:
 //{descripcion, cantidad, categoria, frecuencia, dia, mes, proximaFecha (AAAA-MM-DD), activo, creado, uidUsuario}
@@ -20,9 +21,9 @@ const campos = ({ descripcion, cantidad, categoria, frecuencia, dia, mes, proxim
   proximaFecha,
 });
 
-//El id se genera en el cliente para poder usarlo de inmediato, incluso sin conexión
-export const crearRecurrente = async (datos) => {
-  const referencia = doc(collection(db, "recurrentes"));
+//El id es una ranura fija `{uid}_{n}` (ver planes.js), elegida en el cliente: sirve de inmediato, incluso sin conexión
+export const crearRecurrente = async (datos, idRanura) => {
+  const referencia = doc(db, "recurrentes", idRanura);
   const estado = await esperarEscritura(
     setDoc(referencia, { ...campos(datos), activo: true, creado: serverTimestamp(), uidUsuario: auth.currentUser.uid })
   );
@@ -40,7 +41,7 @@ export const borrarRecurrente = (id) => esperarEscritura(deleteDoc(doc(db, "recu
 export const idGastoDePago = (recurrente) => `rec_${recurrente.id}_${recurrente.proximaFecha}`;
 
 //Registra el pago como gasto (con el monto y la fecha que confirme la persona) y pasa al siguiente vencimiento.
-//Ambas escrituras van en un lote: o se aplican las dos o ninguna.
+//Las escrituras (gasto, contador de uso y nuevo vencimiento) van en un lote: o se aplican todas o ninguna.
 export const registrarPago = (recurrente, { cantidad, fecha }) => {
   const lote = writeBatch(db);
   lote.set(doc(db, "gastos", idGastoDePago(recurrente)), {
@@ -50,6 +51,7 @@ export const registrarPago = (recurrente, { cantidad, fecha }) => {
     fecha: getUnixTime(fecha),
     uidUsuario: auth.currentUser.uid,
   });
+  sumarUsoDeGasto(lote, auth.currentUser.uid); //el gasto cuenta para el límite mensual del plan
   lote.update(doc(db, "recurrentes", recurrente.id), { proximaFecha: siguienteFecha(recurrente, recurrente.proximaFecha) });
   return esperarEscritura(lote.commit());
 };

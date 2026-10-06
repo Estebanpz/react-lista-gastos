@@ -3,6 +3,9 @@ import Hoja from "../Hoja";
 import Insignia from "../categorias/Insignia";
 import { useCategorias } from "../../contexts/CategoriasContext";
 import { useRecurrentes } from "../../contexts/RecurrentesContext";
+import { useCliente } from "../../contexts/ClienteContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { ranuraLibre } from "../../functions/planes";
 import { crearRecurrente, actualizarRecurrente } from "../../firebase/recurrentes";
 import { interpretarMonto } from "../gastos/RegistroRapido";
 import { primeraFecha, fechaLegible, NOMBRES_DIA, NOMBRES_MES, DIAS_ANTES_AVISO } from "../../functions/recurrencias";
@@ -24,7 +27,9 @@ let contador = 0;
 //al editar se conserva, salvo que cambie la frecuencia o el día (entonces se recalcula).
 const HojaRecurrente = ({ abierta, alCerrar, recurrente }) => {
   const { categorias } = useCategorias();
-  const { hoy } = useRecurrentes();
+  const { hoy, recurrentes } = useRecurrentes();
+  const { limites } = useCliente();
+  const { usuario } = useAuth();
   const idBase = useRef(null);
   if (idBase.current === null) idBase.current = `recurrente-${++contador}`;
   const id = (sufijo) => `${idBase.current}-${sufijo}`;
@@ -90,7 +95,16 @@ const HojaRecurrente = ({ abierta, alCerrar, recurrente }) => {
     const datos = { descripcion, cantidad: valor, categoria, ...borrador, proximaFecha };
     try {
       if (recurrente) await actualizarRecurrente(recurrente.id, datos);
-      else await crearRecurrente(datos);
+      else {
+        //Con el cupo del plan lleno no se puede crear otro (las reglas también lo impiden)
+        const ranura = recurrentes.length >= limites.pagosActivos ? null : ranuraLibre(usuario.uid, recurrentes.map((r) => r.id), limites.pagosActivos);
+        if (!ranura) {
+          cambiarErrores({ general: `Tu plan permite hasta ${limites.pagosActivos} pagos recurrentes. Borra uno o cambia de plan.` });
+          cambiarEnviando(false);
+          return;
+        }
+        await crearRecurrente(datos, ranura);
+      }
       alCerrar(true);
     } catch (error) {
       console.log(error);

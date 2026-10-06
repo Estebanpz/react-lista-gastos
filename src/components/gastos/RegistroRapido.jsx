@@ -5,6 +5,7 @@ import { getUnixTime, fromUnixTime } from "date-fns";
 import theme from "../../theme";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCategorias } from "../../contexts/CategoriasContext";
+import { useCliente } from "../../contexts/ClienteContext";
 import agregarGasto from "../../firebase/AgregarGasto";
 import actualizarGasto from "../../firebase/ActualizarGasto";
 import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
@@ -239,6 +240,9 @@ const RegistroRapido = ({ gasto, alTerminar, idPrefijo = "registro" }) => {
   const { categorias } = useCategorias();
   const navigate = useNavigate();
   const editando = Boolean(gasto);
+  const { puedeEscribir, limites, usoGastos } = useCliente();
+  const limiteAlcanzado = !editando && usoGastos >= limites.gastosMes;
+  const bloqueado = !puedeEscribir || limiteAlcanzado;
 
   const [monto, cambiarMonto] = useState(gasto ? String(gasto.cantidad).replace(".", ",") : "");
   const [categoria, cambiarCategoria] = useState(gasto ? gasto.categoria : "comida");
@@ -412,7 +416,8 @@ const RegistroRapido = ({ gasto, alTerminar, idPrefijo = "registro" }) => {
 
         {errores.general && <MensajeError role="alert">{errores.general}</MensajeError>}
 
-        <BotonPrincipal type="submit" aria-busy={enviando}>
+        {limiteAlcanzado && puedeEscribir && <MensajeError role="status">Alcanzaste el límite de {limites.gastosMes} gastos de este mes. Se reinicia el mes siguiente; si necesitas más, cambia de plan.</MensajeError>}
+        <BotonPrincipal type="submit" aria-busy={enviando} disabled={bloqueado}>
           {enviando ? <><Espera aria-hidden="true" /> Guardando…</> : <><IconoCheck tam={20} /> {editando ? "Guardar cambios" : "Guardar gasto"}</>}
         </BotonPrincipal>
         {editando && <BotonEnlace type="button" onClick={() => (alTerminar ? alTerminar() : navigate("/lista"))}>Cancelar</BotonEnlace>}

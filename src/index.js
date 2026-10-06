@@ -11,6 +11,7 @@ import AppShell from "./components/app/AppShell";
 import PaginaInicio from "./components/paginas/PaginaInicio";
 import { CategoriasProvider } from "./contexts/CategoriasContext";
 import { RecurrentesProvider } from "./contexts/RecurrentesContext";
+import { ClienteProvider } from "./contexts/ClienteContext";
 import EstadoConexion from "./components/EstadoConexion";
 import AvisoActualizacion from "./components/AvisoActualizacion";
 import { registrarServiceWorker } from "./pwa/registroServiceWorker";
@@ -18,12 +19,15 @@ import "./pwa/instalacion"; //debe cargarse al arrancar para no perder el evento
 
 import { AuthProvider } from "./contexts/AuthContext";
 import RutaPrivada from "./components/RutaPrivada";
+import RutaDeCliente from "./components/RutaDeCliente";
 
 //Las pantallas secundarias se cargan solo cuando se visitan (menor bundle inicial)
 const PaginaEditar = lazy(() => import("./components/paginas/PaginaEditar"));
 const PaginaCategorias = lazy(() => import("./components/paginas/PaginaCategorias"));
 const PaginaLista = lazy(() => import("./components/paginas/PaginaLista"));
 const PaginaRecurrentes = lazy(() => import("./components/paginas/PaginaRecurrentes"));
+const PaginaAdmin = lazy(() => import("./components/paginas/PaginaAdmin"));
+const PaginaPlan = lazy(() => import("./components/paginas/PaginaPlan"));
 //Cargando las fuentes de Google Fonts
 WebFont.load({
   google: {
@@ -36,6 +40,7 @@ const Index = () => {
   return (
     <>
       <AuthProvider>
+          <ClienteProvider>
           <CategoriasProvider>
           <RecurrentesProvider>
           <BrowserRouter>
@@ -46,11 +51,13 @@ const Index = () => {
                 <Route path="/crear-cuenta" element={<Navigate to="/inicio-sesion" replace />} />
 
                 <Route element={<RutaPrivada><AppShell /></RutaPrivada>}>
-                  <Route path="/" element={<PaginaInicio />} />
-                  <Route path="/lista" element={<PaginaLista />} />
-                  <Route path="/categorias" element={<PaginaCategorias />} />
-                  <Route path="/recurrentes" element={<PaginaRecurrentes />} />
-                  <Route path="/editar-gasto/:id" element={<PaginaEditar />} />
+                  <Route path="/" element={<RutaDeCliente><PaginaInicio /></RutaDeCliente>} />
+                  <Route path="/lista" element={<RutaDeCliente><PaginaLista /></RutaDeCliente>} />
+                  <Route path="/categorias" element={<RutaDeCliente><PaginaCategorias /></RutaDeCliente>} />
+                  <Route path="/recurrentes" element={<RutaDeCliente><PaginaRecurrentes /></RutaDeCliente>} />
+                  <Route path="/plan" element={<RutaDeCliente><PaginaPlan /></RutaDeCliente>} />
+                  <Route path="/admin" element={<PaginaAdmin />} />
+                  <Route path="/editar-gasto/:id" element={<RutaDeCliente><PaginaEditar /></RutaDeCliente>} />
                   <Route path="*" element={<Error404 />} />
                 </Route>
               </Routes>
@@ -58,6 +65,7 @@ const Index = () => {
           </BrowserRouter>
           </RecurrentesProvider>
           </CategoriasProvider>
+          </ClienteProvider>
       </AuthProvider>
       <EstadoConexion />
       <AvisoActualizacion />

@@ -126,7 +126,7 @@ const DetalleRecurrente = ({ recurrente, categoria, hoy, alRegistrar, alOmitir, 
         {estadoVisible(recurrente, hoy) !== "al-dia" && <EstadoPago recurrente={recurrente} hoy={hoy} />}
       </p>
     </Cifra>
-    {recurrente.activo && (
+    {recurrente.activo && alRegistrar && (
       <Botones>
         <BotonPrincipal type="button" onClick={alRegistrar}>Registrar pago</BotonPrincipal>
         <BotonSecundario type="button" onClick={alOmitir}>Omitir esta vez</BotonSecundario>

@@ -19,7 +19,7 @@ const docTok = (uid, id, extra = {}) => ({ document: { name: `projects/demo/data
 const docPerfil = (uid, extra = {}) => ({ found: { name: `projects/demo/databases/(default)/documents/usuarios/${uid}`, fields: campos({ zona: "America/Bogota", detalleEnAviso: false, ...extra }) } });
 
 //Servidor falso de Google: responde según la URL y guarda las llamadas
-const crearFetch = ({ recs = [], perfilesRes = [], tokens = [], fcm = () => ({ ok: true }) }) => {
+const crearFetch = ({ recs = [], perfilesRes = [], tokens = [], clientes = [], admins = [], fcm = () => ({ ok: true }) }) => {
   const llamadas = [];
   const pedir = async (url, init = {}) => {
     const cuerpo = init.body && typeof init.body === "string" ? JSON.parse(init.body) : init.body;
@@ -28,7 +28,10 @@ const crearFetch = ({ recs = [], perfilesRes = [], tokens = [], fcm = () => ({ o
     if (String(url).includes("oauth2.googleapis.com")) return json({ access_token: "AT" });
     if (String(url).endsWith(":batchGet")) return json(perfilesRes);
     if (String(url).endsWith(":commit")) return json({});
-    if (String(url).endsWith(":runQuery")) return json(cuerpo.structuredQuery.from[0].collectionId === "tokens" ? tokens : recs);
+    if (String(url).endsWith(":runQuery")) {
+      const coleccion = cuerpo.structuredQuery.from[0].collectionId;
+      return json({ tokens, clientes, super_admins: admins }[coleccion] ?? recs);
+    }
     if (String(url).includes("fcm.googleapis.com")) {
       const r = fcm(cuerpo.message);
       return r.ok ? json({ name: "x" }) : json({ error: { details: [{ errorCode: r.codigo }] } }, r.estado || 404);
@@ -57,7 +60,7 @@ test("sin pagos en la ventana no consulta perfiles ni tokens ni envía nada", as
   const { pedir, llamadas } = crearFetch({ recs: [{}] });
   const r = await ejecutar(env, { fetch: pedir, ahora: AHORA });
   assert.equal(r.avisos, 0);
-  assert.equal(llamadas.length, 2); //OAuth + consulta de pagos
+  assert.equal(llamadas.length, 4); //OAuth + pagos + clientes + super admins (sin destinatarios: nada más)
 });
 
 test("envía UN aviso por persona (con 2 pagos) con texto genérico, sin montos ni descripciones", async () => {

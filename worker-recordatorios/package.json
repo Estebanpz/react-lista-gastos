@@ -5,7 +5,7 @@
   "description": "Worker de Cloudflare con Cron Trigger que env\u00eda los recordatorios de pagos recurrentes por FCM",
   "type": "module",
   "scripts": {
-    "test": "node --test test/recordatorios.test.js test/emulador.test.js",
+    "test": "node --test test/recordatorios.test.js test/planes.test.js test/api.test.js test/emulador.test.js",
     "dev": "wrangler dev --test-scheduled",
     "desplegar": "wrangler deploy",
     "test:emulador": "node scripts/emulador.js"

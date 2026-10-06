@@ -9,6 +9,7 @@ const mockBorrarCat = jest.fn();
 let mockPropias = [];
 jest.mock("../Hooks/useGastosRango", () => ({ __esModule: true, default: (...a) => mockRango(...a) }));
 jest.mock("../firebase/categorias", () => ({ crearCategoria: jest.fn(), actualizarCategoria: jest.fn(), borrarCategoria: (...a) => mockBorrarCat(...a) }));
+jest.mock("../contexts/AuthContext", () => ({ useAuth: () => ({ usuario: { uid: "ana" } }) }));
 jest.mock("../contexts/CategoriasContext", () => {
   const { crearContextoCategorias } = require("../testUtils/mocksApp");
   return { useCategorias: () => crearContextoCategorias(mockPropias) };

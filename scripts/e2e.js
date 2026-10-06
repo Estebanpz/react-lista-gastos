@@ -27,7 +27,7 @@ e2e.hosting.headers = e2e.hosting.headers.map((regla) => ({
       ? {
           ...cab,
           value: cab.value
-            .replace("connect-src 'self'", `connect-src 'self' http://127.0.0.1:${puertos.firestore} http://127.0.0.1:${puertos.auth}`)
+            .replace("connect-src 'self'", `connect-src 'self' http://127.0.0.1:${puertos.firestore} http://127.0.0.1:${puertos.auth} http://127.0.0.1:${puertos.api}`)
             .replace("; upgrade-insecure-requests", ""),
         }
       : cab

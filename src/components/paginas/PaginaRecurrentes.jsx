@@ -6,6 +6,7 @@ import theme from "../../theme";
 import useMediaQuery from "../../Hooks/useMediaQuery";
 import { useRecurrentes } from "../../contexts/RecurrentesContext";
 import { useCategorias } from "../../contexts/CategoriasContext";
+import { useCliente } from "../../contexts/ClienteContext";
 import { borrarRecurrente, pausarRecurrente, omitirPago } from "../../firebase/recurrentes";
 import { sumarDias, diasEntre, vencimientosHasta } from "../../functions/recurrencias";
 import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
@@ -217,8 +218,15 @@ const Flotante = styled.button`
   cursor: pointer;
   touch-action: manipulation;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #2f3aa8;
+  }
+
+  &:disabled {
+    background: #C3C9F2;
+    color: #4A5568;
+    box-shadow: none;
+    cursor: not-allowed;
   }
 
   &:focus-visible {
@@ -258,6 +266,7 @@ const MENSAJES = { pagado: "Pago registrado como gasto.", omitido: "Pago omitido
 const PaginaRecurrentes = () => {
   const { recurrentes, cargando, error, hoy } = useRecurrentes();
   const { porId } = useCategorias();
+  const { puedeEscribir } = useCliente(); //plan vencido: se puede ver pero no crear ni registrar pagos
   const esEscritorio = useMediaQuery(theme.dosColumnas); //panel lateral (si no, detalle y avisos en la columna/hoja)
 
   const [seleccionadoId, cambiarSeleccionadoId] = useState(null);
@@ -308,7 +317,7 @@ const PaginaRecurrentes = () => {
       recurrente={seleccionado}
       categoria={porId(seleccionado.categoria)}
       hoy={hoy}
-      alRegistrar={() => { cambiarDetalleAbierto(false); cambiarAPagar(seleccionado); }}
+      alRegistrar={puedeEscribir ? () => { cambiarDetalleAbierto(false); cambiarAPagar(seleccionado); } : undefined}
       alOmitir={() => accion(omitirPago(seleccionado), "omitido")}
       alEditar={() => { cambiarDetalleAbierto(false); cambiarEdicion({ recurrente: seleccionado }); }}
       alPausar={() => accion(pausarRecurrente(seleccionado.id, !seleccionado.activo), "guardado")}
@@ -327,7 +336,7 @@ const PaginaRecurrentes = () => {
           <h1>Pagos</h1>
           <p>Nómina, recibos y créditos que se repiten</p>
         </div>
-        <BotonNuevo type="button" onClick={() => cambiarEdicion({})}>
+        <BotonNuevo type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>
           <IconoMas tam={20} /> Nuevo pago
         </BotonNuevo>
       </Cabecera>
@@ -348,7 +357,7 @@ const PaginaRecurrentes = () => {
               <Ilustracion nombre="recordatorio" ancho="12rem" />
               <strong>Aún no tienes pagos programados</strong>
               <p>Agrega la nómina, el arriendo, los recibos o las cuotas que se repiten y te avisamos 3 días antes y el mismo día.</p>
-              <BotonPrincipal type="button" onClick={() => cambiarEdicion({})}>Programar un pago</BotonPrincipal>
+              <BotonPrincipal type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>Programar un pago</BotonPrincipal>
             </Vacio>
           )}
 
@@ -389,7 +398,7 @@ const PaginaRecurrentes = () => {
                           hoy={hoy}
                           seleccionada={esEscritorio && r.id === seleccionadoId}
                           alElegir={() => elegir(r)}
-                          alRegistrar={() => cambiarAPagar(r)}
+                          alRegistrar={puedeEscribir ? () => cambiarAPagar(r) : undefined}
                         />
                       </li>
                     ))}
@@ -414,7 +423,7 @@ const PaginaRecurrentes = () => {
       {/* Fuera del contenedor animado: un transform en un ancestro rompe position: fixed */}
       {recurrentes.length > 0 &&
         ReactDOM.createPortal(
-          <Flotante type="button" onClick={() => cambiarEdicion({})}>
+          <Flotante type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>
             <IconoMas tam={22} /> Nuevo pago
           </Flotante>,
           document.body

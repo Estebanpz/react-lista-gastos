@@ -6,6 +6,9 @@ import Insignia from "./Insignia";
 import IconoCat, { EXTRAS } from "./iconos";
 import COLORES from "../../functions/paleta";
 import { useCategorias } from "../../contexts/CategoriasContext";
+import { useCliente } from "../../contexts/ClienteContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { ranuraLibre } from "../../functions/planes";
 import { crearCategoria, actualizarCategoria } from "../../firebase/categorias";
 import { IconoCheck } from "../iconos";
 import { Espera, BotonPrincipal, MensajeError } from "../auth/elementos";
@@ -175,7 +178,9 @@ const Secundario = styled.button`
 
 //Hoja para crear (o editar) una categoría propia: nombre, icono y color, con vista previa en vivo.
 const CrearCategoria = ({ abierta, alCerrar, categoria, alGuardar }) => {
-  const { categorias } = useCategorias();
+  const { categorias, propias } = useCategorias();
+  const { puedeEscribir, limites } = useCliente();
+  const { usuario } = useAuth();
   const editando = Boolean(categoria);
   const [nombre, cambiarNombre] = useState("");
   const [icono, cambiarIcono] = useState(EXTRAS[0]);
@@ -209,7 +214,14 @@ const CrearCategoria = ({ abierta, alCerrar, categoria, alGuardar }) => {
         await actualizarCategoria(categoria.id, { nombre: limpio, icono, color });
         alGuardar && alGuardar({ ...categoria, texto: limpio, icono, color });
       } else {
-        const { id } = await crearCategoria({ nombre: limpio, icono, color });
+        //Con el cupo del plan lleno no se puede crear otra (las reglas también lo impiden)
+        const ranura = propias.length >= limites.categorias ? null : ranuraLibre(usuario.uid, propias.map((c) => c.id), limites.categorias);
+        if (!ranura) {
+          cambiarError(`Tu plan permite hasta ${limites.categorias} categorías propias. Borra una o cambia de plan.`);
+          cambiarEnviando(false);
+          return;
+        }
+        const { id } = await crearCategoria({ nombre: limpio, icono, color }, ranura);
         alGuardar && alGuardar({ id, texto: limpio, icono, color, propia: true });
       }
       alCerrar();
@@ -266,7 +278,7 @@ const CrearCategoria = ({ abierta, alCerrar, categoria, alGuardar }) => {
 
         <Acciones>
           <Secundario type="button" onClick={alCerrar}>Cancelar</Secundario>
-          <BotonPrincipal type="submit" aria-busy={enviando} style={{ marginTop: 0 }}>
+          <BotonPrincipal type="submit" aria-busy={enviando} disabled={!puedeEscribir} style={{ marginTop: 0 }}>
             {enviando ? <><Espera aria-hidden="true" /> Guardando…</> : <><IconoCheck tam={18} /> {editando ? "Guardar cambios" : "Crear categoría"}</>}
           </BotonPrincipal>
         </Acciones>

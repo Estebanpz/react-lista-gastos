@@ -46,6 +46,31 @@ describe("armarNotificacion (push recibido en el service worker)", () => {
   });
 });
 
+describe("avisos de plan", () => {
+  test.each([
+    ["7", "Tu plan vence en 7 días"],
+    ["1", "Tu plan vence mañana"],
+    ["0", "Tu plan vence hoy"],
+    ["-1", "Tu plan venció"],
+  ])("días %s → «%s», con tag propio y destino /plan", (dias, titulo) => {
+    const r = armarNotificacion(fcm({ tipo: "plan", dias, url: "https://malo.example" }));
+    expect(r.titulo).toBe(titulo);
+    expect(r.opciones.data.url).toBe("/plan");
+    expect(r.opciones.tag).toBe("plan");
+  });
+  test("días inválidos → aviso genérico del plan", () => {
+    expect(armarNotificacion(fcm({ tipo: "plan", dias: "<b>" })).opciones.body).toBe("Revisa tu plan.");
+    expect(armarNotificacion(fcm({ tipo: "plan", dias: "99" })).opciones.data.url).toBe("/plan");
+  });
+  test("resumen para el super admin: cuenta por vencer y vencidos, destino /admin", () => {
+    const r = armarNotificacion(fcm({ tipo: "resumen-planes", porVencer: "3", vencidos: "1", url: "/admin" }));
+    expect(r.titulo).toBe("Planes de clientes por revisar");
+    expect(r.opciones.body).toBe("3 por vencer esta semana · 1 vencidos sin renovar");
+    expect(r.opciones.data.url).toBe("/admin");
+    expect(armarNotificacion(fcm({ tipo: "resumen-planes", porVencer: "x", vencidos: "0" })).opciones.body).toBe("Revisa los vencimientos.");
+  });
+});
+
 describe("destinoAlTocar", () => {
   const origen = "https://finanzas.zfmanager.com";
   test("siempre del mismo origen", () => {

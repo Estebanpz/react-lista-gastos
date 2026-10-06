@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+let mockTope = 50;
 const mockCrear = jest.fn();
 const mockActualizar = jest.fn();
 jest.mock("../firebase/categorias", () => ({
@@ -9,6 +10,8 @@ jest.mock("../firebase/categorias", () => ({
   actualizarCategoria: (...a) => mockActualizar(...a),
   borrarCategoria: jest.fn(),
 }));
+jest.mock("../contexts/ClienteContext", () => ({ useCliente: () => ({ puedeEscribir: true, limites: { categorias: mockTope } }) }));
+jest.mock("../contexts/AuthContext", () => ({ useAuth: () => ({ usuario: { uid: "ana" } }) }));
 jest.mock("../contexts/CategoriasContext", () => {
   const { crearContextoCategorias, PROPIA } = require("../testUtils/mocksApp");
   return { useCategorias: () => crearContextoCategorias([PROPIA]) };
@@ -26,6 +29,7 @@ const montar = (props = {}) => {
 
 describe("CrearCategoria", () => {
   beforeEach(() => {
+    mockTope = 50;
     mockCrear.mockReset().mockResolvedValue({ id: "NUEVA000000000000000", estado: "sincronizado" });
     mockActualizar.mockReset().mockResolvedValue("sincronizado");
     jest.spyOn(console, "log").mockImplementation(() => {});
@@ -51,7 +55,7 @@ describe("CrearCategoria", () => {
     userEvent.click(screen.getByRole("radio", { name: "Turquesa" }));
     expect(screen.getByRole("radio", { name: "Huella" })).toHaveAttribute("aria-checked", "true");
     userEvent.click(screen.getByRole("button", { name: /crear categoría/i }));
-    await waitFor(() => expect(mockCrear).toHaveBeenCalledWith({ nombre: "Gimnasio", icono: "pata", color: "turquesa" }));
+    await waitFor(() => expect(mockCrear).toHaveBeenCalledWith({ nombre: "Gimnasio", icono: "pata", color: "turquesa" }, "ana_1")); //primera ranura libre del cupo
     expect(alGuardar).toHaveBeenCalledWith(expect.objectContaining({ id: "NUEVA000000000000000", texto: "Gimnasio", propia: true }));
     expect(alCerrar).toHaveBeenCalled();
   });
@@ -95,6 +99,15 @@ describe("CrearCategoria", () => {
     const { alCerrar } = montar();
     userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(alCerrar).toHaveBeenCalled();
+    expect(mockCrear).not.toHaveBeenCalled();
+  });
+
+  test("con el cupo del plan lleno avisa y no crea (ya hay 1 propia y el tope es 1)", async () => {
+    mockTope = 1;
+    montar();
+    userEvent.type(screen.getByLabelText(/nombre/i), "Gimnasio");
+    userEvent.click(screen.getByRole("button", { name: /crear categoría/i }));
+    expect((await screen.findAllByText(/Tu plan permite hasta 1 categorías propias/)).length).toBeGreaterThan(0);
     expect(mockCrear).not.toHaveBeenCalled();
   });
 });
