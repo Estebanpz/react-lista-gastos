@@ -80,7 +80,7 @@ test("super admin crea un cliente: cuenta + plan con el formato de las reglas + 
   const f = w.update.fields;
   assert.equal(f.plan.stringValue, "basico");
   assert.equal(f.estado.stringValue, "activo");
-  assert.equal(f.limites.mapValue.fields.gastosMes.integerValue, "10");
+  assert.equal(f.limites.mapValue.fields.gastosMes.integerValue, "30");
   assert.equal(f.vence.timestampValue, "2026-12-08T04:59:59.999Z"); //30 días, al cierre del día en Colombia
   assert.deepEqual(Object.keys(f).sort(), ["actualizado", "correo", "creado", "estado", "limites", "nombre", "notas", "plan", "vence"]);
 });
