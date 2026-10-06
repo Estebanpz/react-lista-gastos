@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { correoUnico, registrarUsuario, enviarGasto, documentosEnEmulador } = require("./utilidades");
 
-const LIMITES = { gastosMes: 2, pagosActivos: 3, categorias: 3, dispositivos: 1, mesesHistorial: 3 };
+const LIMITES = { gastosMes: 2, pagosActivos: 3, categorias: 3, dispositivos: 1 };
 
 test.describe("Plan del cliente", () => {
   test("plan vencido: aviso con WhatsApp y registro desactivado (solo lectura)", async ({ page }) => {

@@ -12,7 +12,7 @@ const TOKEN = "t".repeat(150);
 const idToken = (t) => crypto.createHash("sha256").update(t).digest("hex");
 const AHORA = new Date();
 const EN = (dias) => Timestamp.fromDate(new Date(AHORA.getTime() + dias * 86400000));
-const limites = (extra = {}) => ({ gastosMes: 1000, pagosActivos: 25, categorias: 20, dispositivos: 5, mesesHistorial: 36, ...extra });
+const limites = (extra = {}) => ({ gastosMes: 1000, pagosActivos: 25, categorias: 20, dispositivos: 5, ...extra });
 const cliente = (correo, extra = {}) => ({ correo, plan: "plus", estado: "activo", vence: EN(30), limites: limites(), creado: Timestamp.fromDate(AHORA), actualizado: serverTimestamp(), ...extra });
 //El mes se cuenta en hora de Colombia (UTC-5), igual que firestore.rules y la app
 const claveUso = (uid) => {
@@ -300,6 +300,10 @@ const caso = async (nombre, fn) => {
     await assertSucceeds(setDoc(doc(root, "clientes/nuevo"), cliente("nuevo@prueba.test")));
     await assertSucceeds(setDoc(doc(root, "clientes/nuevo"), cliente("nuevo@prueba.test", { plan: "basico", limites: limites({ gastosMes: 300 }) })));
     await assertSucceeds(updateDoc(doc(root, "clientes/nuevo"), { estado: "suspendido", actualizado: serverTimestamp() }));
+    //Documentos antiguos con `mesesHistorial` siguen siendo válidos (hasta volver a guardarlos); sin las 4 claves vigentes no
+    await assertSucceeds(setDoc(doc(root, "clientes/antiguo"), cliente("antiguo@prueba.test", { limites: { ...limites(), mesesHistorial: 12 } })));
+    await assertFails(setDoc(doc(root, "clientes/sinClave"), cliente("s@prueba.test", { limites: { gastosMes: 5, pagosActivos: 2, categorias: 1 } })));
+    await assertFails(setDoc(doc(root, "clientes/extra"), cliente("e@prueba.test", { limites: { ...limites(), otraCosa: 1 } })));
     //El Worker deja `ultimoAvisoPlan` en el cliente: el admin puede seguir editándolo y esa marca no se puede falsear con otro tipo
     await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), "clientes/nuevo"), { ultimoAvisoPlan: "2026-11-10T04:59:59Z:3" }));
     await assertSucceeds(updateDoc(doc(root, "clientes/nuevo"), { plan: "plus", actualizado: serverTimestamp() }));

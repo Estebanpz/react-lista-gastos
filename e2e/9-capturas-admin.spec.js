@@ -45,7 +45,7 @@ test.describe("móvil", () => {
 
 test("Mi plan en PC y móvil", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await registrarUsuario(page, correoUnico("cliente"), { plan: "plus", diasVence: 5, limites: { gastosMes: 20, pagosActivos: 25, categorias: 20, dispositivos: 5, mesesHistorial: 36 } });
+  await registrarUsuario(page, correoUnico("cliente"), { plan: "plus", diasVence: 5, limites: { gastosMes: 20, pagosActivos: 25, categorias: 20, dispositivos: 5 } });
   for (const [d, m] of [["Pago de nómina", 1200000], ["Almuerzo", 35000], ["Taxi", 22000]]) {
     await page.getByLabel("Valor del gasto (COP)").fill(String(m));
     await page.getByLabel("Detalle").fill(d);

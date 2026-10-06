@@ -217,7 +217,7 @@ const PaginaPlan = () => {
                 <Medidor etiqueta={ETIQUETAS_LIMITE.categorias} usado={propias.length} limite={limites.categorias} />
               </Medidores>
               <p style={{ marginTop: "1.1rem", fontSize: "0.875rem", color: theme.tintaSuave }}>
-                Dispositivos con avisos: hasta {limites.dispositivos}. Historial: {limites.mesesHistorial} meses. El cupo de gastos se reinicia cada mes.
+                Dispositivos con avisos: hasta {limites.dispositivos}. El cupo de gastos se reinicia cada mes.
               </p>
             </Tarjeta>
           )}

@@ -4,21 +4,20 @@
 //ese documento, no este catálogo (por eso un cliente puede tener límites distintos del plan, p. ej. un cupo extra).
 
 export const PLANES = {
-  prueba: { id: "prueba", nombre: "Prueba", precio: 0, dias: 30, limites: { gastosMes: 2, pagosActivos: 2, categorias: 1, dispositivos: 1, mesesHistorial: 1 } },
-  basico: { id: "basico", nombre: "Básico", precio: 60000, dias: 30, limites: { gastosMes: 30, pagosActivos: 5, categorias: 3, dispositivos: 2, mesesHistorial: 3 } },
-  plus: { id: "plus", nombre: "Plus", precio: 80000, dias: 30, limites: { gastosMes: 100, pagosActivos: 20, categorias: 8, dispositivos: 3, mesesHistorial: 12 } },
-  negocio: { id: "negocio", nombre: "Negocio", precio: 140000, dias: 30, limites: { gastosMes: 200, pagosActivos: 50, categorias: 20, dispositivos: 5, mesesHistorial: 36 } },
+  prueba: { id: "prueba", nombre: "Prueba", precio: 0, dias: 30, limites: { gastosMes: 2, pagosActivos: 2, categorias: 1, dispositivos: 1 } },
+  basico: { id: "basico", nombre: "Básico", precio: 60000, dias: 30, limites: { gastosMes: 30, pagosActivos: 5, categorias: 3, dispositivos: 2 } },
+  plus: { id: "plus", nombre: "Plus", precio: 80000, dias: 30, limites: { gastosMes: 100, pagosActivos: 20, categorias: 8, dispositivos: 3 } },
+  negocio: { id: "negocio", nombre: "Negocio", precio: 140000, dias: 30, limites: { gastosMes: 200, pagosActivos: 50, categorias: 20, dispositivos: 5 } },
 };
 export const IDS_PLAN = Object.keys(PLANES);
 export const ESTADOS_GUARDADOS = ["prueba", "activo", "suspendido"];
-export const CLAVES_LIMITE = ["gastosMes", "pagosActivos", "categorias", "dispositivos", "mesesHistorial"];
+export const CLAVES_LIMITE = ["gastosMes", "pagosActivos", "categorias", "dispositivos"];
 
 export const ETIQUETAS_LIMITE = {
   gastosMes: "Gastos registrados",
   pagosActivos: "Pagos recurrentes",
   categorias: "Categorías propias",
   dispositivos: "Dispositivos con avisos",
-  mesesHistorial: "Meses de historial",
 };
 
 const MS_DIA = 86400000;

@@ -177,13 +177,14 @@ service cloud.firestore {
     // ---- Planes de los clientes: solo el super admin los escribe; cada cliente lee el suyo ----
     function limitesValidos(l) {
       return l is map
+        // `mesesHistorial` ya no existe en los planes; se tolera solo en documentos antiguos hasta que se vuelvan a guardar
         && l.keys().hasOnly(['gastosMes', 'pagosActivos', 'categorias', 'dispositivos', 'mesesHistorial'])
-        && l.keys().hasAll(['gastosMes', 'pagosActivos', 'categorias', 'dispositivos', 'mesesHistorial'])
+        && l.keys().hasAll(['gastosMes', 'pagosActivos', 'categorias', 'dispositivos'])
         && l.gastosMes is int && l.gastosMes >= 0 && l.gastosMes <= 1000000
         && l.pagosActivos is int && l.pagosActivos >= 0 && l.pagosActivos <= 10000
         && l.categorias is int && l.categorias >= 0 && l.categorias <= 10000
         && l.dispositivos is int && l.dispositivos >= 0 && l.dispositivos <= 100
-        && l.mesesHistorial is int && l.mesesHistorial >= 0 && l.mesesHistorial <= 600;
+        && (!('mesesHistorial' in l) || (l.mesesHistorial is int && l.mesesHistorial >= 0 && l.mesesHistorial <= 600));
     }
 
     function clienteValido(d) {
