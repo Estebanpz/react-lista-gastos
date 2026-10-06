@@ -16,6 +16,7 @@ import Ilustracion from "../Ilustracion";
 import { Espera, MensajeError } from "../auth/elementos";
 import { BotonSecundario } from "../recurrentes/elementos";
 import { IconoInstalar } from "../iconos";
+import BotonInstalarApp from "../instalar/BotonInstalarApp";
 import { Medidor, PastillaEstado, fechaCorta } from "../admin/elementos";
 
 const entrar = keyframes`from { opacity: 0; transform: translateY(0.6rem); } to { opacity: 1; transform: none; }`;
@@ -252,6 +253,7 @@ const PaginaPlan = () => {
                 Descargar mis gastos (Excel)
               </span>
             </BotonSecundario>
+            <BotonInstalarApp />
           </Acciones>
           <p style={{ marginTop: "0.85rem", fontSize: "0.8125rem", lineHeight: 1.45, color: theme.tintaSuave }}>
             Tus datos son tuyos: puedes descargarlos en cualquier momento, incluso con el plan vencido.

@@ -48,3 +48,28 @@ export const estaInstalada = () =>
 export const esIOS = () =>
     /iphone|ipad|ipod/i.test(window.navigator.userAgent) ||
     (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+
+//Qué navegador de iPhone/iPad es y de qué versión de iOS. En iOS TODOS los navegadores usan el motor de Safari, pero
+//solo Safari (y, desde iOS 16.4, los que Apple autoriza: Chrome, Firefox, Edge…) pueden «Agregar a pantalla de inicio».
+//Devuelve {navegador: "safari"|"chrome"|"firefox"|"edge"|"integrado"|"otro", version: número|null}.
+//`integrado` = navegador interno de otra app (Instagram, Facebook…): ahí no se puede instalar.
+export const detectarNavegadorIOS = (ua = window.navigator.userAgent) => {
+    const m = /OS (\d+)[_.](\d+)/.exec(ua);
+    const version = m ? Number(m[1]) + Number(m[2]) / 100 : null; //17.04 = iOS 17.4 (solo para comparar con 16.04)
+    let navegador = 'otro';
+    if (/FBAN|FBAV|Instagram|MicroMessenger|Line\//i.test(ua)) navegador = 'integrado';
+    else if (/CriOS/.test(ua)) navegador = 'chrome';
+    else if (/FxiOS/.test(ua)) navegador = 'firefox';
+    else if (/EdgiOS/.test(ua)) navegador = 'edge';
+    else if (/OPiOS|OPT\//.test(ua)) navegador = 'otro';
+    else if (/Safari\//.test(ua)) navegador = 'safari';
+    else navegador = 'integrado'; //sin «Safari/» en el user agent suele ser un WebView de otra app
+    return { navegador, version };
+};
+
+//¿Se puede instalar desde este navegador de iPhone? Safari siempre; los demás desde iOS 16.4.
+export const puedeInstalarEnEsteIOS = (info = detectarNavegadorIOS()) => {
+    if (info.navegador === 'safari') return true;
+    if (['chrome', 'firefox', 'edge'].includes(info.navegador)) return info.version === null || info.version >= 16.04;
+    return false;
+};

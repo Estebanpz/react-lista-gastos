@@ -15,6 +15,8 @@ jest.mock("../pwa/instalacion", () => ({
   instalar: (...a) => mockInstalar(...a),
   estaInstalada: () => mockEstaInstalada(),
   esIOS: () => mockEsIOS(),
+  detectarNavegadorIOS: () => ({ navegador: "safari", version: 17.04 }),
+  puedeInstalarEnEsteIOS: () => true,
 }));
 
 import BannerInstalar from "../components/BannerInstalar";
@@ -66,11 +68,13 @@ describe("BannerInstalar", () => {
     expect(screen.queryByLabelText(/instalar la aplicación/i)).not.toBeInTheDocument();
   });
 
-  test("en iOS muestra las instrucciones y no el botón «Instalar app»", () => {
+  test("en iOS ofrece «Ver cómo instalar», que abre la guía, y no el botón «Instalar app»", () => {
     mockEsIOS.mockReturnValue(true);
     render(<BannerInstalar />);
-    expect(screen.getByText(/toca Compartir/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Instalar app" })).not.toBeInTheDocument();
+    userEvent.click(screen.getByRole("button", { name: "Ver cómo instalar" }));
+    expect(screen.getByRole("dialog", { name: "Instalar en tu iPhone" })).toBeInTheDocument();
+    expect(screen.getByText(/Agregar a pantalla de inicio/)).toBeInTheDocument();
   });
 
   test("sigue funcionando si localStorage lanza un error", () => {

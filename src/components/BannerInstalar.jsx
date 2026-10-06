@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import theme from "../theme";
 import { suscribirInstalacion, instalar, estaInstalada, esIOS } from "../pwa/instalacion";
+import GuiaInstalarIOS from "./instalar/GuiaInstalarIOS";
 
 const CLAVE_DESCARTE = "pwa:instalar:v1";
 const TREINTA_DIAS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -65,6 +66,7 @@ const BannerInstalar = () => {
   const [puedeInstalar, cambiarPuedeInstalar] = useState(false);
   const [descartado, cambiarDescartado] = useState(fueDescartadoRecientemente);
   const [instalada, cambiarInstalada] = useState(estaInstalada);
+  const [guia, cambiarGuia] = useState(false);
 
   useEffect(
     () =>
@@ -88,18 +90,23 @@ const BannerInstalar = () => {
       <span>
         {puedeInstalar
           ? "Instala la app para abrirla desde tu pantalla de inicio, incluso sin conexión."
-          : "Para instalar la app toca Compartir y luego «Agregar a inicio»."}
+          : "Instala la app en tu pantalla de inicio para abrirla rápido y recibir los avisos de tus pagos."}
       </span>
       <Acciones>
         <Accion type="button" onClick={descartar}>
           Ahora no
         </Accion>
-        {puedeInstalar && (
+        {puedeInstalar ? (
           <Accion type="button" primaria onClick={() => instalar()}>
             Instalar app
           </Accion>
+        ) : (
+          <Accion type="button" primaria onClick={() => cambiarGuia(true)}>
+            Ver cómo instalar
+          </Accion>
         )}
       </Acciones>
+      {guia && <GuiaInstalarIOS abierta alCerrar={() => cambiarGuia(false)} />}
     </Banner>
   );
 };

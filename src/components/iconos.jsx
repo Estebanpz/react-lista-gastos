@@ -31,3 +31,11 @@ export const IconoRegresar = (p) => (<Icono {...p}><path d="M19 12H5" /><path d=
 export const IconoClientes = (p) => (<Icono {...p}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7" /><path d="M18 14.2A6.5 6.5 0 0 1 21.5 20" /></Icono>);
 //Mi plan: tarjeta con sello
 export const IconoPlan = (p) => (<Icono {...p}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /><path d="M7 15h4" /></Icono>);
+//Guía de instalación en iPhone: botón Compartir de iOS (cuadro abierto con flecha hacia arriba)
+export const IconoCompartir = (p) => (<Icono {...p}><path d="M12 15V3" /><path d="m8 7 4-4 4 4" /><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1" /></Icono>);
+//«Agregar a pantalla de inicio»: cuadrado con un «+»
+export const IconoAgregarInicio = (p) => (<Icono {...p}><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" /><path d="M12 8v8M8 12h8" /></Icono>);
+//Interruptor activado («Abrir como app web»)
+export const IconoInterruptor = (p) => (<Icono {...p}><rect x="2.5" y="7" width="19" height="10" rx="5" /><circle cx="16.5" cy="12" r="2.6" fill="currentColor" /></Icono>);
+//Menú «⋯» de Safari
+export const IconoPuntos = (p) => (<Icono {...p}><circle cx="5" cy="12" r="1.3" fill="currentColor" /><circle cx="12" cy="12" r="1.3" fill="currentColor" /><circle cx="19" cy="12" r="1.3" fill="currentColor" /></Icono>);

@@ -8,6 +8,7 @@ import { estadoAvisos, activarAvisos, desactivarAvisos, guardarPreferencias } fr
 import { db, auth, doc, getDoc } from "../../firebase/firebaseConfig";
 import { OPCIONES_BASE } from "../../pwa/avisos";
 import { DIAS_ANTES_AVISO } from "../../functions/recurrencias";
+import GuiaInstalarIOS from "../instalar/GuiaInstalarIOS";
 
 const CLAVE_DESCARTE = "avisos:descartado:v1";
 const DESCARTE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -88,6 +89,7 @@ const TarjetaAvisos = ({ siempre = false }) => {
   const [estado, cambiarEstado] = useState("cargando");
   const [ocupado, cambiarOcupado] = useState(false);
   const [mensaje, cambiarMensaje] = useState(null);
+  const [guia, cambiarGuia] = useState(false);
   const [detalle, cambiarDetalle] = useState(false);
   const [oculta, cambiarOculta] = useState(() => !siempre && descartadoReciente());
 
@@ -177,7 +179,7 @@ const TarjetaAvisos = ({ siempre = false }) => {
     disponible: { titulo: "Avisos en este dispositivo", cuerpo: `Te avisamos ${DIAS_ANTES_AVISO} días antes y el mismo día de cada pago, aunque la app esté cerrada.` },
     activo: { titulo: "Avisos activados", cuerpo: `Este dispositivo recibe los avisos ${DIAS_ANTES_AVISO} días antes y el mismo día de cada pago.` },
     denegado: { titulo: "Los avisos están bloqueados", cuerpo: "Actívalos en los ajustes del sitio (el candado junto a la dirección) y vuelve a esta pantalla." },
-    "ios-sin-instalar": { titulo: "Instala la app para recibir avisos", cuerpo: "En iPhone los avisos solo llegan con la app instalada: toca Compartir y luego «Agregar a inicio»." },
+    "ios-sin-instalar": { titulo: "Instala la app para recibir avisos", cuerpo: "En iPhone los avisos solo llegan con la app instalada en tu pantalla de inicio." },
   }[estado];
 
   return (
@@ -196,6 +198,13 @@ const TarjetaAvisos = ({ siempre = false }) => {
             {!siempre && <BotonSecundario type="button" onClick={ahoraNo}>Ahora no</BotonSecundario>}
           </Acciones>
         )}
+
+        {estado === "ios-sin-instalar" && (
+          <Acciones>
+            <BotonPrincipal type="button" onClick={() => cambiarGuia(true)}>Ver cómo instalar</BotonPrincipal>
+          </Acciones>
+        )}
+        {guia && <GuiaInstalarIOS abierta alCerrar={() => cambiarGuia(false)} />}
 
         {estado === "activo" && (
           <>
