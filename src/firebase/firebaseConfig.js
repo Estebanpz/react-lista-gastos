@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import {
   getFirestore,
   initializeFirestore,
@@ -42,6 +43,21 @@ const firebaseConfig = {
 };
 
 export const app = initializeApp(firebaseConfig);
+
+//App Check (reCAPTCHA Enterprise, invisible): Firestore solo acepta peticiones que vienen de esta app.
+//Se activa antes de Firestore para que ninguna petición salga sin token. No se usa con los emuladores
+//(pruebas E2E y de reglas). En desarrollo (localhost) se usa un token de depuración que hay que
+//registrar en Firebase Console → App Check → Administrar tokens de depuración.
+const usaEmuladores =
+  process.env.REACT_APP_USAR_EMULADORES === "true" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const claveRecaptcha = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+if (claveRecaptcha && !usaEmuladores) {
+  if (process.env.NODE_ENV === "development") self.FIREBASE_APPCHECK_DEBUG_TOKEN = true; // eslint-disable-line no-restricted-globals
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(claveRecaptcha),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 
 //Auth solo con correo y contraseña: se inicializa sin el resolvedor de popups/redirecciones
 //(código que no usamos) y con la persistencia de sesión en IndexedDB, con localStorage de respaldo
