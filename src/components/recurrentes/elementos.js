@@ -93,7 +93,7 @@ export const CajaMonto = styled.div`
   }
 
   span {
-    font-size: 1.6rem;
+    font-size: 2rem;
     font-weight: 800;
     color: ${theme.tintaSuave};
   }
@@ -105,7 +105,7 @@ export const CajaMonto = styled.div`
     outline: 0;
     background: transparent;
     font: inherit;
-    font-size: clamp(1.9rem, 8vw, 2.5rem);
+    font-size: clamp(2.25rem, 9vw, 3.25rem);
     font-weight: 800;
     letter-spacing: -0.03em;
     font-variant-numeric: tabular-nums;
@@ -226,4 +226,16 @@ export const BotonSecundario = styled.button`
     opacity: 0.5;
     cursor: not-allowed;
   }
+`;
+
+//Monto ya formateado con separador de miles («$ 1.200.000»), bajo el campo, como en «Añadir gasto». Letra grande para móvil.
+export const VistaMonto = styled.p`
+  margin-top: 0.4rem;
+  padding-left: 0.4rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: ${theme.colorPrimario};
 `;

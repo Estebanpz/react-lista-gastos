@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hoja from "../Hoja";
 import { BotonPrincipal, Espera, MensajeError } from "../auth/elementos";
-import { Formulario, Etiqueta, Entrada, Seleccion, Ayuda, CajaMonto } from "../recurrentes/elementos";
+import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
+import { Formulario, Etiqueta, Entrada, Seleccion, Ayuda, CajaMonto, VistaMonto } from "../recurrentes/elementos";
 import { PLANES, IDS_PLAN, nuevoVencimiento } from "../../functions/planes";
 import { registrarPagoPlan } from "../../firebase/clientes";
 import { interpretarMonto } from "../gastos/RegistroRapido";
@@ -71,6 +72,7 @@ const HojaPagoPlan = ({ cliente, alCerrar }) => {
             <span aria-hidden="true">$</span>
             <input id={`${id}-monto`} inputMode="decimal" autoComplete="off" value={monto} onChange={(e) => cambiarMonto(e.target.value.replace(/[^\d.,]/g, ""))} />
           </CajaMonto>
+          {interpretarMonto(monto) > 0 && <VistaMonto aria-live="polite">{ConvertirAMoneda(interpretarMonto(monto))}</VistaMonto>}
         </div>
         <div>
           <Etiqueta htmlFor={`${id}-ref`}>Referencia (opcional)</Etiqueta>

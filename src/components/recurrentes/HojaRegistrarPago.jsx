@@ -10,7 +10,8 @@ import { registrarPago, omitirPago } from "../../firebase/recurrentes";
 import { interpretarMonto } from "../gastos/RegistroRapido";
 import { describirFrecuencia, etiquetaVencimiento, fechaLegible, siguienteFecha } from "../../functions/recurrencias";
 import { BotonPrincipal, Espera, MensajeError } from "../auth/elementos";
-import { Formulario, Etiqueta, Ayuda, CajaMonto, BotonSecundario } from "./elementos";
+import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
+import { Formulario, Etiqueta, Ayuda, CajaMonto, VistaMonto, BotonSecundario } from "./elementos";
 
 const Resumen = styled.div`
   display: flex;
@@ -135,6 +136,7 @@ const HojaRegistrarPago = ({ recurrente, alCerrar }) => {
               aria-describedby={error ? `${idBase.current}-error` : undefined}
             />
           </CajaMonto>
+          {interpretarMonto(monto) > 0 && <VistaMonto aria-live="polite">{ConvertirAMoneda(interpretarMonto(monto))}</VistaMonto>}
           <Ayuda>Cámbialo si esta vez pagaste un valor distinto.</Ayuda>
         </div>
 

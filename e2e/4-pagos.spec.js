@@ -14,6 +14,8 @@ const crearPagoSemanal = async (page, descripcion, monto) => {
   const hoja = page.getByRole("dialog", { name: "Nuevo pago recurrente" });
   await hoja.getByLabel("Qué pago es").fill(descripcion);
   await hoja.getByLabel("Monto (COP)").fill(String(monto));
+  //debajo del campo se muestra el valor con separador de miles, como en «Añadir gasto»
+  await expect(hoja.getByText(new RegExp(`^\\$\\s?${Number(monto).toLocaleString("es-CO")}$`))).toBeVisible();
   await hoja.getByRole("radio", { name: "Nómina" }).click();
   await hoja.getByRole("radio", { name: "Semanal" }).click();
   await hoja.getByLabel("Día de la semana").selectOption({ label: DIAS[(enTresDias().getDay() + 6) % 7] });

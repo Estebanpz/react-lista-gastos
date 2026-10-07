@@ -10,7 +10,8 @@ import { crearRecurrente, actualizarRecurrente } from "../../firebase/recurrente
 import { interpretarMonto } from "../gastos/RegistroRapido";
 import { primeraFecha, fechaLegible, NOMBRES_DIA, NOMBRES_MES, DIAS_ANTES_AVISO } from "../../functions/recurrencias";
 import { BotonPrincipal, Espera, MensajeError } from "../auth/elementos";
-import { Formulario, Etiqueta, Grupo, Entrada, Seleccion, Ayuda, CajaMonto, Segmentos, Chips, Chip } from "./elementos";
+import ConvertirAMoneda from "../../functions/ConvertirAMoneda";
+import { Formulario, Etiqueta, Grupo, Entrada, Seleccion, Ayuda, CajaMonto, VistaMonto, Segmentos, Chips, Chip } from "./elementos";
 
 const FRECUENCIAS = [
   { id: "mensual", texto: "Mensual" },
@@ -151,7 +152,7 @@ const HojaRecurrente = ({ abierta, alCerrar, recurrente }) => {
               aria-describedby={errores.monto ? id("error-monto") : undefined}
             />
           </CajaMonto>
-          {errores.monto && <Ayuda $error id={id("error-monto")}>{errores.monto}</Ayuda>}
+          {errores.monto ? <Ayuda $error id={id("error-monto")}>{errores.monto}</Ayuda> : <VistaMonto aria-live="polite">{interpretarMonto(monto) > 0 ? ConvertirAMoneda(interpretarMonto(monto)) : "Escribe el valor con el teclado numérico."}</VistaMonto>}
         </div>
 
         <Grupo>

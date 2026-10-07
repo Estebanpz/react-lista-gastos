@@ -53,7 +53,7 @@ const Texto = styled.span`
 
   strong {
     display: block;
-    font-size: 1rem;
+    font-size: 1.0625rem;
     font-weight: 700;
     color: ${theme.tinta};
     overflow: hidden;
@@ -76,7 +76,7 @@ const Lado = styled.span`
   gap: 0.3rem;
 
   b {
-    font-size: 1rem;
+    font-size: 1.25rem; /* en móvil 1rem son 14px: el monto es lo que más se mira */
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: ${theme.tinta};

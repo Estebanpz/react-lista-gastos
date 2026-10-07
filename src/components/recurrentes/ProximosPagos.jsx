@@ -43,7 +43,7 @@ const Lado = styled.div`
   gap: 0.25rem;
 
   b {
-    font-size: 0.9375rem;
+    font-size: 1.125rem;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     color: ${theme.tinta};
