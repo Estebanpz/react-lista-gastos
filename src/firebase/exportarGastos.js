@@ -5,5 +5,5 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 //los datos son suyos y las reglas nunca bloquean la lectura.
 export const obtenerTodosLosGastos = async () => {
   const instantanea = await getDocs(query(collection(db, "gastos"), where("uidUsuario", "==", auth.currentUser.uid)));
-  return instantanea.docs.map((d) => d.data());
+  return instantanea.docs.map((d) => ({ id: d.id, ...d.data() })); //el id enlaza cada gasto con su pago recurrente («rec_…»)
 };

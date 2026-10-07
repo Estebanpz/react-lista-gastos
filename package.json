@@ -9,6 +9,8 @@
     "@use-gesture/react": "10.3.1",
     "date-fns": "^2.28.0",
     "firebase": "^11.10.0",
+    "jspdf": "2.5.2",
+    "jspdf-autotable": "3.8.4",
     "react": "^17.0.2",
     "react-day-picker": "8.10.2",
     "react-dom": "^17.0.2",
@@ -23,11 +25,12 @@
     "workbox-expiration": "6.4.2",
     "workbox-precaching": "6.4.2",
     "workbox-routing": "6.4.2",
-    "workbox-strategies": "6.4.2"
+    "workbox-strategies": "6.4.2",
+    "xlsx-js-style": "1.2.0"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "INLINE_RUNTIME_CHUNK=false GENERATE_SOURCEMAP=false react-scripts build",
+    "build": "INLINE_RUNTIME_CHUNK=false GENERATE_SOURCEMAP=false react-scripts build && node scripts/sacar-reporte-del-precache.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "e2e": "node scripts/e2e.js",

@@ -9,7 +9,8 @@ import { useRecurrentes } from "../../contexts/RecurrentesContext";
 import { usePagosCliente } from "../../Hooks/useClientesAdmin";
 import { PLANES, ETIQUETAS_LIMITE, diasParaVencer } from "../../functions/planes";
 import { enlaceWhatsApp, mensajeRenovar } from "../../functions/contacto";
-import { gastosACsv, descargarArchivo, fechaISO } from "../../functions/exportar";
+import { descargarBlob } from "../../functions/exportar";
+import { armarReporte, nombreArchivoReporte, PERIODOS } from "../../functions/reporte";
 import { obtenerTodosLosGastos } from "../../firebase/exportarGastos";
 import FormatearCantidad from "../../functions/ConvertirAMoneda";
 import Ilustracion from "../Ilustracion";
@@ -146,15 +147,35 @@ const EnlaceBoton = styled.a`
   }
 `;
 
+const OpcionPeriodo = styled.button`
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 2px solid ${(p) => (p.$marcado ? "#3e4bc7" : theme.borde)};
+  border-radius: 999px;
+  background: ${(p) => (p.$marcado ? "#3e4bc7" : "#fff")};
+  color: ${(p) => (p.$marcado ? "#fff" : theme.tinta)};
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  &:focus-visible {
+    outline: 3px solid ${theme.tinta};
+    outline-offset: 2px;
+  }
+`;
+
 const PaginaPlan = () => {
   const { cargando, cliente, usoGastos, esAdmin, limites } = useCliente();
   const { usuario } = useAuth();
   const { propias, porId } = useCategorias();
   const { recurrentes } = useRecurrentes();
   const pagos = usePagosCliente(usuario ? usuario.uid : null);
-  const [descargando, cambiarDescargando] = useState(false);
+  const [generando, cambiarGenerando] = useState(null); //"xlsx" | "pdf" mientras se prepara
+  const [periodo, cambiarPeriodo] = useState("mes");
   const [error, cambiarError] = useState("");
-  const [descargado, cambiarDescargado] = useState(false);
+  const [descargado, cambiarDescargado] = useState("");
 
   //El super admin no tiene plan: su pantalla es Clientes
   if (esAdmin) return <Navigate to="/admin" replace />;
@@ -163,19 +184,30 @@ const PaginaPlan = () => {
   const dias = cliente ? diasParaVencer(cliente.vence) : null;
   const contacto = enlaceWhatsApp(mensajeRenovar(usuario && usuario.email, plan && plan.nombre));
 
-  const descargar = async () => {
-    cambiarDescargando(true);
+  //Reporte detallado en Excel (.xlsx real) o PDF. Las librerías se cargan solo al pulsar (no pesan en la carga inicial).
+  const generar = async (formato) => {
+    cambiarGenerando(formato);
     cambiarError("");
-    cambiarDescargado(false);
+    cambiarDescargado("");
     try {
       const gastos = await obtenerTodosLosGastos();
-      descargarArchivo(`finanzas-gastos-${fechaISO(Date.now() / 1000)}.csv`, gastosACsv(gastos, (id) => porId(id).texto));
-      cambiarDescargado(true);
+      const reporte = armarReporte({ gastos, recurrentes, porId, periodo, ahora: new Date(), correo: usuario ? usuario.email : "" });
+      let blob;
+      if (formato === "xlsx") {
+        const { construirExcel } = await import(/* webpackChunkName: "exportar-xlsx" */ "../../utils/exportarExcel");
+        blob = new Blob([construirExcel(reporte)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      } else {
+        const { construirPdfBytes } = await import(/* webpackChunkName: "exportar-pdf" */ "../../utils/exportarPdf");
+        blob = new Blob([construirPdfBytes(reporte)], { type: "application/pdf" });
+      }
+      const nombre = nombreArchivoReporte(reporte, formato);
+      descargarBlob(nombre, blob);
+      cambiarDescargado(nombre);
     } catch (e) {
       console.log(e);
-      cambiarError("No pudimos preparar la descarga. Revisa tu conexión e inténtalo de nuevo.");
+      cambiarError("No pudimos preparar el archivo. Revisa tu conexión e inténtalo de nuevo.");
     }
-    cambiarDescargando(false);
+    cambiarGenerando(null);
   };
 
   return (
@@ -223,6 +255,39 @@ const PaginaPlan = () => {
             </Tarjeta>
           )}
 
+          <Tarjeta $i={2} aria-label="Descargar mis datos">
+            <h2>Descargar mis datos</h2>
+            <p style={{ marginBottom: "0.9rem", fontSize: "0.9375rem", lineHeight: 1.45, color: theme.tintaSuave }}>
+              Reporte con cada gasto y pago por nombre, categoría, monto y fecha, y el estado de tus pagos recurrentes.
+            </p>
+            <div role="radiogroup" aria-label="Periodo del reporte" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {PERIODOS.map((p) => (
+                <OpcionPeriodo key={p.id} type="button" role="radio" aria-checked={periodo === p.id} $marcado={periodo === p.id} onClick={() => cambiarPeriodo(p.id)}>
+                  {p.etiqueta}
+                </OpcionPeriodo>
+              ))}
+            </div>
+            <Acciones style={{ marginTop: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(11rem, 1fr))" }}>
+              <BotonSecundario type="button" onClick={() => generar("xlsx")} disabled={Boolean(generando)} aria-busy={generando === "xlsx"}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                  {generando === "xlsx" ? <Espera aria-hidden="true" /> : <IconoInstalar tam={18} />}
+                  Descargar Excel
+                </span>
+              </BotonSecundario>
+              <BotonSecundario type="button" onClick={() => generar("pdf")} disabled={Boolean(generando)} aria-busy={generando === "pdf"}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                  {generando === "pdf" ? <Espera aria-hidden="true" /> : <IconoInstalar tam={18} />}
+                  Descargar PDF
+                </span>
+              </BotonSecundario>
+            </Acciones>
+            <p style={{ marginTop: "0.85rem", fontSize: "0.8125rem", lineHeight: 1.45, color: theme.tintaSuave }}>
+              Tus datos son tuyos: puedes descargarlos en cualquier momento, incluso con el plan vencido.
+            </p>
+            {descargado && <p role="status" style={{ marginTop: "0.6rem", fontWeight: 600, color: theme.verdeTexto }}>Listo: «{descargado}» está en tu carpeta de descargas.</p>}
+            {error && <MensajeError role="alert" style={{ marginTop: "0.6rem" }}>{error}</MensajeError>}
+          </Tarjeta>
+
           {pagos && pagos.length > 0 && (
             <Tarjeta $i={2} aria-label="Pagos">
               <h2>Mis pagos</h2>
@@ -247,19 +312,8 @@ const PaginaPlan = () => {
             <EnlaceBoton href={contacto} target="_blank" rel="noopener noreferrer">
               {cliente && dias < 0 ? "Renovar por WhatsApp" : "Renovar o cambiar de plan"}
             </EnlaceBoton>
-            <BotonSecundario type="button" onClick={descargar} disabled={descargando} aria-busy={descargando}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-                {descargando ? <Espera aria-hidden="true" /> : <IconoInstalar tam={18} />}
-                Descargar mis gastos (Excel)
-              </span>
-            </BotonSecundario>
             <BotonInstalarApp />
           </Acciones>
-          <p style={{ marginTop: "0.85rem", fontSize: "0.8125rem", lineHeight: 1.45, color: theme.tintaSuave }}>
-            Tus datos son tuyos: puedes descargarlos en cualquier momento, incluso con el plan vencido.
-          </p>
-          {descargado && <p role="status" style={{ marginTop: "0.6rem", fontWeight: 600, color: theme.verdeTexto }}>Listo: revisa tu carpeta de descargas.</p>}
-          {error && <MensajeError role="alert" style={{ marginTop: "0.6rem" }}>{error}</MensajeError>}
         </Tarjeta>
       </Diseno>
     </>

@@ -27,9 +27,11 @@ clientsClaim();
 cleanupOutdatedCaches();
 
 // CRA inyecta aquí la lista de archivos generados por webpack. Se excluyen las capturas
-// de pantalla y robots.txt: solo las usa el navegador/instalador, no la app.
+// de pantalla y robots.txt (solo las usa el navegador/instalador) y los chunks del reporte
+// (Excel y PDF, ~0,5 MB): se descargan al pedir el reporte y se guardan en caché entonces,
+// para no encarecer la instalación de la app.
 const archivos = self.__WB_MANIFEST.filter(
-  (entrada) => !/(^|\/)captura-[^/]+\.png$|(^|\/)robots\.txt$/.test(entrada.url)
+  (entrada) => !/(^|\/)captura-[^/]+\.png$|(^|\/)robots\.txt$|\/static\/js\/exportar-[^/]+\.js(\.map)?$/.test(entrada.url)
 );
 precacheAndRoute(archivos);
 
@@ -53,6 +55,17 @@ registerRoute(
   new StaleWhileRevalidate({
     cacheName: 'iconos-app',
     plugins: [new ExpirationPlugin({ maxEntries: 10 })],
+  })
+);
+
+// Chunks de JavaScript que no están en el precaché (los pesados del reporte de Excel/PDF; ver
+// scripts/sacar-reporte-del-precache.js): caché primero tras la primera descarga (llevan hash en el nombre).
+// El precaché se registra antes, así que lo precacheado no pasa por aquí.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && /\/static\/js\/[^/]+\.js$/.test(url.pathname),
+  new CacheFirst({
+    cacheName: 'reporte-chunks',
+    plugins: [new CacheableResponsePlugin({ statuses: [200] }), new ExpirationPlugin({ maxEntries: 6 })],
   })
 );
 

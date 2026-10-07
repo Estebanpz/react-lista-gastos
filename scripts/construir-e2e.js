@@ -29,6 +29,7 @@ const construir = (version) => {
     CI: "true",
   };
   execSync("npx react-scripts build", { cwd: raiz, env, stdio: "pipe" });
+  execSync("node scripts/sacar-reporte-del-precache.js build-e2e", { cwd: raiz, env, stdio: "pipe" }); //igual que `npm run build`
 };
 
 module.exports = construir;

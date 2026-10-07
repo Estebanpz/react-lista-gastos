@@ -47,8 +47,17 @@ const asignarPlan = async (uid, correo, { plan = "negocio", estado = "activo", d
 
 //Crea la cuenta y entra; espera la pantalla de inicio
 const registrarUsuario = async (page, correo, plan) => {
-  await crearCuenta(correo, plan);
+  const uid = await crearCuenta(correo, plan);
   await iniciarSesionUI(page, correo);
+  return uid;
+};
+
+//Escribe un documento en el emulador (acceso de propietario, se salta las reglas). Tipos JS → tipos de Firestore.
+const valorFs = (v) => (typeof v === "boolean" ? { booleanValue: v } : Number.isInteger(v) ? { integerValue: String(v) } : typeof v === "number" ? { doubleValue: v } : v instanceof Date ? { timestampValue: v.toISOString() } : { stringValue: String(v) });
+const sembrarDocumento = async (ruta, objeto) => {
+  const url = `http://127.0.0.1:${puertos.firestore}/v1/projects/demo-e2e/databases/(default)/documents/${ruta}`;
+  const r = await fetch(url, { method: "PATCH", headers: { Authorization: "Bearer owner", "Content-Type": "application/json" }, body: JSON.stringify({ fields: Object.fromEntries(Object.entries(objeto).map(([k, v]) => [k, valorFs(v)])) }) });
+  if (!r.ok) throw new Error(`No se pudo sembrar ${ruta} (${r.status})`);
 };
 
 //Inicia sesión desde la pantalla de acceso; «recordar» = estado del interruptor «Recordarme»
@@ -135,4 +144,4 @@ const gastosEnEmulador = async () => (await documentosEnEmulador("gastos")).map(
 //Para cortar la comunicación con los emuladores y simular que no hay red
 const RUTA_EMULADORES = new RegExp(`127\\.0\\.0\\.1:(${puertos.firestore}|${puertos.auth})`);
 
-module.exports = { crearCuenta, asignarPlan, cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };
+module.exports = { sembrarDocumento, crearCuenta, asignarPlan, cerrarSesionUI, irA, documentosEnEmulador, RUTA_EMULADORES, CLAVE, correoUnico, registrarUsuario, iniciarSesionUI, deslizar, codigosDeRecuperacion, enviarGasto, elegirFecha, esperarServiceWorker, gastosEnEmulador };

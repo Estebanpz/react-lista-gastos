@@ -38,28 +38,22 @@ test.describe("Plan del cliente", () => {
     expect(uso.map((d) => Number(d.gastos))).toContain(2);
   });
 
-  test("Mi plan: muestra el uso y descarga los gastos aunque el plan esté vencido", async ({ page }) => {
+  test("Mi plan muestra el plan y el uso del mes", async ({ page }) => {
     await registrarUsuario(page, correoUnico("miplan"), { plan: "basico", diasVence: 30 });
-    await enviarGasto(page, "Almuerzo; con \"comillas\"", 35000, "Comida");
+    await enviarGasto(page, "Almuerzo", 35000, "Comida");
     await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
 
     await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Mi plan" }).click();
     await expect(page.getByRole("heading", { name: "Mi plan" })).toBeVisible();
     await expect(page.getByText("Básico", { exact: true })).toBeVisible();
     await expect(page.getByRole("meter", { name: /Gastos registrados este mes/ })).toHaveAttribute("aria-valuenow", "1");
-
-    const [descarga] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Descargar mis gastos/ }).click()]);
-    expect(descarga.suggestedFilename()).toMatch(/^finanzas-gastos-\d{4}-\d{2}-\d{2}\.csv$/);
-    const texto = require("fs").readFileSync(await descarga.path(), "utf8");
-    expect(texto).toContain("Fecha;Descripción;Categoría;Valor (COP)");
-    expect(texto).toContain('"Almuerzo; con ""comillas"""');
-    expect(texto).toContain(";Comida;35000");
   });
 
   test("Mi plan con el plan vencido: aviso de renovación y la descarga sigue disponible", async ({ page }) => {
     await registrarUsuario(page, correoUnico("miplan-vencido"), { plan: "basico", diasVence: -3 });
     await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Mi plan" }).click();
     await expect(page.getByRole("link", { name: "Renovar por WhatsApp" }).last()).toHaveAttribute("href", /wa\.me/);
-    await expect(page.getByRole("button", { name: /Descargar mis gastos/ })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Descargar Excel" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Descargar PDF" })).toBeEnabled();
   });
 });
