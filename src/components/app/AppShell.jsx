@@ -306,7 +306,8 @@ const AppShell = () => {
             </Enlace>
             <Enlace to="/lista">
               <IconoLista tam={22} />
-              Lista
+              <span className="largo">Gastos variables (gastos)</span>
+              <span className="corto">Variables</span>
             </Enlace>
             <Enlace to="/categorias">
               <IconoCategorias tam={22} />

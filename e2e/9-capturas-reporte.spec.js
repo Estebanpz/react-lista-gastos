@@ -44,3 +44,21 @@ test.describe("móvil", () => {
     await page.screenshot({ path: `${DIR}/movil_nuevo_gasto_fijo.png` });
   });
 });
+
+test.describe("móvil inicio", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  test("inicio y selector de agregar", async ({ page }) => {
+    const uid = await registrarUsuario(page, correoUnico("movilinicio"), { plan: "plus", diasVence: 20 });
+    const ahora = Math.floor(Date.now() / 1000);
+    const hoy = new Date().toISOString().slice(0, 10);
+    await sembrarDocumento("gastos/g1", { uidUsuario: uid, descripcion: "Pantalla", cantidad: 100000, categoria: "cuentas y pagos", fecha: ahora });
+    await sembrarDocumento(`gastos/rec_${uid}_1_${hoy}`, { uidUsuario: uid, descripcion: "Tarjeta de crédito", cantidad: 500000, categoria: "creditos", fecha: ahora });
+    await sembrarDocumento(`recurrentes/${uid}_1`, { uidUsuario: uid, descripcion: "Tarjeta de crédito", cantidad: 500000, categoria: "creditos", frecuencia: "mensual", dia: 23, mes: 0, proximaFecha: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10), activo: true, creado: new Date() });
+    await page.reload();
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${DIR}/movil_inicio_fijos_variables.png` });
+    await page.getByRole("button", { name: "Agregar", exact: true }).tap();
+    await page.waitForTimeout(700);
+    await page.screenshot({ path: `${DIR}/movil_agregar_elegir.png` });
+  });
+});

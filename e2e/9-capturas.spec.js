@@ -48,7 +48,7 @@ test("capturas en escritorio", async ({ page }) => {
   const nav = (n) => page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: n });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${DIR}/pc_inicio.png` });
-  await nav("Lista").click();
+  await nav("Gastos variables").click();
   await page.getByText("Pago de nómina").click();
   await page.waitForTimeout(1200);
   await page.screenshot({ path: `${DIR}/pc_lista.png` });
@@ -77,13 +77,14 @@ test.describe("móvil", () => {
     await page.reload();
     await page.waitForTimeout(1800);
     await page.screenshot({ path: `${DIR}/movil_inicio.png` });
-    await page.getByRole("button", { name: "Agregar gasto" }).tap();
+    await page.getByRole("button", { name: "Agregar", exact: true }).tap();
+    await page.getByRole("button", { name: /Gasto variable/ }).tap();
     await page.getByRole("dialog").getByLabel("Valor del gasto (COP)").fill("45000");
     await page.waitForTimeout(700);
     await page.screenshot({ path: `${DIR}/movil_registro.png` });
     await page.keyboard.press("Escape");
     await page.getByRole("dialog").waitFor({ state: "hidden" });
-    await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Lista" }).click();
+    await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Variables" }).click();
     await page.waitForTimeout(1500);
     await page.screenshot({ path: `${DIR}/movil_lista.png` });
     const fila = page.getByRole("button", { name: /Almuerzo de trabajo/ });

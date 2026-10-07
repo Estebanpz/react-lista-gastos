@@ -90,7 +90,7 @@ test.describe("Pantallas nuevas en escritorio", () => {
     const f = new Date(Number(guardado.fecha) * 1000);
     expect([f.getFullYear(), f.getMonth(), f.getDate()]).toEqual([antes.getFullYear(), antes.getMonth(), 10]);
 
-    await irA(page, "Lista");
+    await irA(page, "Gastos variables");
     await expect(page.getByText("Gasto de hace dos meses")).toBeHidden(); //período «Mes»: no aparece
     await page.getByRole("group", { name: "Período" }).getByRole("button", { name: "3 meses" }).click();
     await expect(page.getByText("Gasto de hace dos meses")).toBeVisible();
@@ -121,7 +121,7 @@ test.describe("Pantallas nuevas en escritorio", () => {
     await enviarGasto(page, "Pago de nómina", 1200000, "Nómina");
     await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
 
-    await irA(page, "Lista");
+    await irA(page, "Gastos variables");
     await expect(page.getByText("Pago de nómina")).toBeVisible();
     await expect(page.getByLabel("Resumen del mes")).toContainText(/1\.285\.000/);
 
@@ -190,12 +190,13 @@ test.describe("Pantallas nuevas en escritorio", () => {
 test.describe("Pantallas nuevas en el móvil (táctil)", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-  test("Barra inferior, botón «Agregar gasto» con hoja, gestos y detalle", async ({ page }) => {
+  test("Barra inferior, botón «Agregar» (elige variable o fijo) con hoja, gestos y detalle", async ({ page }) => {
     await registrarUsuario(page, correoUnico("movil"));
-    await expect(nav(page).getByRole("link", { name: "Lista" })).toBeVisible();
+    await expect(nav(page).getByRole("link", { name: "Variables" })).toBeVisible();
 
     //el registro se abre como hoja que sube desde abajo
-    await page.getByRole("button", { name: "Agregar gasto" }).tap();
+    await page.getByRole("button", { name: "Agregar", exact: true }).tap();
+    await page.getByRole("button", { name: /Gasto variable/ }).tap();
     const hoja = page.getByRole("dialog", { name: "Nuevo gasto" });
     await expect(hoja).toBeVisible();
     await hoja.getByLabel("Valor del gasto (COP)").fill("45000");
@@ -218,7 +219,8 @@ test.describe("Pantallas nuevas en el móvil (táctil)", () => {
 
   test("En el móvil, tocar un gasto abre el detalle como hoja y se cierra arrastrando o con Escape", async ({ page }) => {
     await registrarUsuario(page, correoUnico("detalle"));
-    await page.getByRole("button", { name: "Agregar gasto" }).tap();
+    await page.getByRole("button", { name: "Agregar", exact: true }).tap();
+    await page.getByRole("button", { name: /Gasto variable/ }).tap();
     const hoja = page.getByRole("dialog", { name: "Nuevo gasto" });
     await hoja.getByLabel("Valor del gasto (COP)").fill("12000");
     await hoja.getByLabel("Detalle").fill("Parqueadero");

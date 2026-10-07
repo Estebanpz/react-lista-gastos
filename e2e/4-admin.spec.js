@@ -74,7 +74,7 @@ test.describe("Panel de super admin", () => {
     await expect(page).toHaveURL(/\/admin$/);
     const menu = page.getByRole("navigation", { name: "Principal" });
     await expect(menu.getByRole("link", { name: "Clientes" })).toBeVisible();
-    for (const n of ["Inicio", "Lista", "Categorías", "Gastos fijos", "Mi plan"]) await expect(menu.getByRole("link", { name: n })).toHaveCount(0);
+    for (const n of ["Inicio", "Gastos variables", "Categorías", "Gastos fijos", "Mi plan"]) await expect(menu.getByRole("link", { name: n })).toHaveCount(0);
 
     await page.reload(); //el plan y «es admin» se resuelven por separado: no debe redirigir antes de saberlo
     await expect(page).toHaveURL(/\/admin$/);

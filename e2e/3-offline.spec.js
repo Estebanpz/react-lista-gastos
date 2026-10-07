@@ -8,7 +8,7 @@ test.describe("Offline: app y datos", () => {
     await esperarServiceWorker(page);
     await enviarGasto(page, "Arriendo", 1500);
     await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
-    await irA(page, "Lista");
+    await irA(page, "Gastos variables");
     await expect(page.getByText("Arriendo")).toBeVisible();
 
     //-- sin conexión (se corta el navegador Y los emuladores, para que sea real)

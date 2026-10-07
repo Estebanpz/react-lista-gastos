@@ -30,7 +30,7 @@ test.describe("Cerrar sesión", () => {
     await registrarUsuario(page, correoUnico("sesion"));
     await enviarGasto(page, "GastoSecretoXYZ", 4321);
     await expect(page.getByText("¡Gasto guardado!")).toBeVisible();
-    await irA(page, "Lista");
+    await irA(page, "Gastos variables");
     await expect(page.getByText("GastoSecretoXYZ")).toBeVisible();
 
     //sanidad de la prueba: antes de salir, el dato SÍ está en el dispositivo

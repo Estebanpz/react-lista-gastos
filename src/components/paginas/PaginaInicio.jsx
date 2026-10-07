@@ -18,7 +18,8 @@ import Hoja from "../Hoja";
 import Ilustracion from "../Ilustracion";
 import BannerInstalar from "../BannerInstalar";
 import ProximosPagos from "../recurrentes/ProximosPagos";
-import { IconoMas, IconoDerecha } from "../iconos";
+import HojaRecurrente from "../recurrentes/HojaRecurrente";
+import { IconoMas, IconoDerecha, IconoLista, IconoPagos } from "../iconos";
 
 const subir = keyframes`from { opacity: 0; transform: translateY(0.75rem); } to { opacity: 1; transform: none; }`;
 
@@ -74,6 +75,38 @@ const Titulo = styled.h1`
   & + p {
     margin-top: 0.35rem;
     color: ${theme.tintaSuave};
+  }
+`;
+
+//Desglose del mes: gastos variables (los que registras) y fijos (los que salen de un pago recurrente)
+const Desglose = styled.dl`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.9rem 0 0;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.9rem;
+    background: ${theme.campo};
+  }
+
+  dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: ${theme.tintaSuave};
+  }
+
+  dd {
+    margin: 0.1rem 0 0;
+    font-size: 1.125rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: ${theme.tinta};
   }
 `;
 
@@ -152,6 +185,8 @@ const Lista = styled.ul`
 
 const VerTodos = styled(Link)`
   display: inline-flex;
+  flex-shrink: 0;
+  white-space: nowrap; /* el título largo («Últimos gastos variables (gastos)») se parte, no «Ver todos» */
   align-items: center;
   gap: 0.25rem;
   min-height: 2.75rem;
@@ -187,6 +222,60 @@ const Vacio = styled.div`
     margin-top: 0.75rem;
     font-size: 1.1rem;
     color: ${theme.tinta};
+  }
+`;
+
+//Elección del botón «Agregar» en móvil: gasto variable (se registra una vez) o gasto fijo (se repite y avisa)
+const Opciones = styled.div`
+  display: grid;
+  gap: 0.75rem;
+`;
+
+const Opcion = styled.button`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.9rem;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 1.1rem;
+  border: 1px solid ${theme.borde};
+  border-radius: 1.2rem;
+  background: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+
+  .icono {
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.9rem;
+    background: ${theme.violetaSuave};
+    color: #3e4bc7;
+  }
+
+  strong {
+    font-size: 1.0625rem;
+    color: ${theme.tinta};
+  }
+
+  span.texto {
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    color: ${theme.tintaSuave};
+  }
+
+  &:hover {
+    border-color: ${theme.bordeCampo};
+    background: ${theme.campo};
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colorPrimario};
+    outline-offset: 2px;
   }
 `;
 
@@ -245,6 +334,8 @@ const PaginaInicio = () => {
   const { gastos, cargando } = useGastosRango(desde, hasta);
   const esEscritorio = useMediaQuery(theme.pantallaAncha); //con barra lateral el registro va en la página; si no, botón flotante + hoja
   const [hojaAbierta, cambiarHojaAbierta] = useState(false);
+  const [eligiendo, cambiarEligiendo] = useState(false); //«¿Qué quieres agregar?»
+  const [fijoAbierto, cambiarFijoAbierto] = useState(false);
   const [dia, cambiarDia] = useState(null);
 
   const total = useMemo(() => totalGastos(gastos), [gastos]);
@@ -252,7 +343,11 @@ const PaginaInicio = () => {
   const claveHoy = claveFecha(hoy);
   const deHoy = useMemo(() => gastos.filter((g) => claveFecha(fromUnixTime(g.fecha)) === claveHoy), [gastos, claveHoy]);
   const mayor = useMemo(() => porCategoria(gastos)[0], [gastos]);
-  const ultimos = gastos.slice(0, 3);
+  //Los gastos que nacen de un pago recurrente tienen id «rec_…» (son los gastos fijos); el resto, variables
+  const esFijo = (g) => String(g.id || "").startsWith("rec_");
+  const variables = useMemo(() => gastos.filter((g) => !esFijo(g)), [gastos]);
+  const totalVariables = useMemo(() => totalGastos(variables), [variables]);
+  const ultimos = variables.slice(0, 3);
   const nombreMes = etiquetaMes(hoy);
   const seleccionado = dia === null ? datos.length - 1 : dia;
 
@@ -270,7 +365,7 @@ const PaginaInicio = () => {
         <Columna>
           {esEscritorio && (
             <Tarjeta aria-labelledby="registro-titulo">
-              <h2 id="registro-titulo">Registro rápido</h2>
+              <h2 id="registro-titulo">Registro rápido de gasto variable</h2>
               <div style={{ marginTop: "1rem" }}>
                 <RegistroRapido idPrefijo="inicio" />
               </div>
@@ -291,6 +386,18 @@ const PaginaInicio = () => {
                   </div>
                   <Etiqueta>{nombreMes}</Etiqueta>
                 </Cabecera>
+                {gastos.length > 0 && (
+                  <Desglose aria-label="Desglose del mes">
+                    <div>
+                      <dt>Variables (gastos)</dt>
+                      <dd>{ConvertirAMoneda(totalVariables)}</dd>
+                    </div>
+                    <div>
+                      <dt>Fijos (pagos)</dt>
+                      <dd>{ConvertirAMoneda(total - totalVariables)}</dd>
+                    </div>
+                  </Desglose>
+                )}
                 {gastos.length ? (
                   <div style={{ marginTop: "2.25rem" }}>
                     <GraficaLinea datos={datos} seleccionado={seleccionado} alSeleccionar={cambiarDia} etiquetaMes={nombreMes} />
@@ -310,7 +417,7 @@ const PaginaInicio = () => {
         <Columna>
           <Mini>
             <Tarjeta $retraso={0.1}>
-              <h2>Gasto de hoy</h2>
+              <h2>Gastos de hoy</h2>
               <p>{ConvertirAMoneda(totalGastos(deHoy))}</p>
               <span>{deHoy.length === 1 ? "1 registro" : `${deHoy.length} registros`}</span>
             </Tarjeta>
@@ -335,7 +442,7 @@ const PaginaInicio = () => {
 
           <Tarjeta aria-labelledby="ultimos-titulo" $retraso={0.2}>
             <Cabecera>
-              <h2 id="ultimos-titulo">Últimos gastos</h2>
+              <h2 id="ultimos-titulo">Últimos gastos variables (gastos)</h2>
               <VerTodos to="/lista">
                 Ver todos <IconoDerecha tam={16} />
               </VerTodos>
@@ -352,7 +459,7 @@ const PaginaInicio = () => {
                 })}
               </Lista>
             ) : (
-              !cargando && <Vacio><p>Cuando registres gastos, los últimos aparecerán aquí.</p></Vacio>
+              !cargando && <Vacio><p>Cuando registres gastos variables, los últimos aparecerán aquí.</p></Vacio>
             )}
           </Tarjeta>
 
@@ -372,12 +479,27 @@ const PaginaInicio = () => {
         <>
           {/* Fuera del contenedor animado: un transform en un ancestro rompe position: fixed */}
           {ReactDOM.createPortal(
-            <Flotante type="button" onClick={() => cambiarHojaAbierta(true)}>
-              <IconoMas tam={22} /> Agregar gasto
+            <Flotante type="button" onClick={() => cambiarEligiendo(true)}>
+              <IconoMas tam={22} /> Agregar
             </Flotante>,
             document.body
           )}
-          <Hoja abierta={hojaAbierta} alCerrar={() => cambiarHojaAbierta(false)} titulo="Nuevo gasto" subtitulo="Regístralo en segundos">
+          <Hoja abierta={eligiendo} alCerrar={() => cambiarEligiendo(false)} titulo="¿Qué quieres agregar?" subtitulo="Elige según cómo lo pagas">
+            <Opciones>
+              <Opcion type="button" onClick={() => { cambiarEligiendo(false); cambiarHojaAbierta(true); }}>
+                <span className="icono" aria-hidden="true"><IconoLista tam={24} /></span>
+                <strong>Gasto variable (gasto)</strong>
+                <span className="texto">Algo que pagas una vez: el almuerzo, un taxi, una compra.</span>
+              </Opcion>
+              <Opcion type="button" onClick={() => { cambiarEligiendo(false); cambiarFijoAbierto(true); }}>
+                <span className="icono" aria-hidden="true"><IconoPagos tam={24} /></span>
+                <strong>Gasto fijo (pago)</strong>
+                <span className="texto">Se repite: nómina, arriendo, recibos o cuotas. Te avisamos antes de cada pago.</span>
+              </Opcion>
+            </Opciones>
+          </Hoja>
+          <HojaRecurrente abierta={fijoAbierto} alCerrar={() => cambiarFijoAbierto(false)} />
+          <Hoja abierta={hojaAbierta} alCerrar={() => cambiarHojaAbierta(false)} titulo="Nuevo gasto variable" subtitulo="Regístralo en segundos">
             <RegistroRapido idPrefijo="hoja" alTerminar={() => cambiarHojaAbierta(false)} />
           </Hoja>
         </>
