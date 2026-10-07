@@ -506,10 +506,10 @@ const PaginaLista = () => {
   return (
     <>
       <Helmet>
-        <title>Lista de gastos · Finanzas</title>
+        <title>Gastos variables (gastos) · Finanzas</title>
       </Helmet>
 
-      <Titulo>Lista de gastos</Titulo>
+      <Titulo>Gastos variables (gastos)</Titulo>
 
       <Resumen aria-label={textoPeriodo.resumen} aria-busy={cargando}>
         <div>

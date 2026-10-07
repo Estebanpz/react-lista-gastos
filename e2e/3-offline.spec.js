@@ -17,7 +17,7 @@ test.describe("Offline: app y datos", () => {
     await context.setOffline(true);
 
     await page.reload(); //la app abre desde el precaché del service worker
-    await expect(page.getByRole("heading", { name: "Lista de gastos" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Gastos variables (gastos)" })).toBeVisible();
     await expect(page.getByText("Arriendo")).toBeVisible(); //dato desde la caché de Firestore
     await expect(page.getByRole("status").filter({ hasText: /sin conexión/i })).toBeVisible();
 
@@ -39,7 +39,7 @@ test.describe("Offline: app y datos", () => {
     await esperarServiceWorker(page);
     await context.route(RUTA_EMULADORES, (r) => r.abort("internetdisconnected"));
     await context.setOffline(true);
-    for (const [ruta, titulo] of [["/categorias", "Categorías"], ["/lista", "Lista de gastos"]]) {
+    for (const [ruta, titulo] of [["/categorias", "Categorías"], ["/lista", "Gastos variables (gastos)"]]) {
       await page.goto(ruta);
       await expect(page.getByRole("heading", { name: titulo, level: 1 })).toBeVisible();
     }

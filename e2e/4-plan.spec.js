@@ -46,7 +46,7 @@ test.describe("Plan del cliente", () => {
     await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Mi plan" }).click();
     await expect(page.getByRole("heading", { name: "Mi plan" })).toBeVisible();
     await expect(page.getByText("Básico", { exact: true })).toBeVisible();
-    await expect(page.getByRole("meter", { name: /Gastos registrados este mes/ })).toHaveAttribute("aria-valuenow", "1");
+    await expect(page.getByRole("meter", { name: /Gastos variables \(gastos\) este mes/ })).toHaveAttribute("aria-valuenow", "1");
   });
 
   test("Mi plan con el plan vencido: aviso de renovación y la descarga sigue disponible", async ({ page }) => {

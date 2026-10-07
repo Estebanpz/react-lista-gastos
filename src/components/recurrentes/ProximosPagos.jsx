@@ -79,7 +79,7 @@ const ProximosPagos = () => {
     return (
       <Vacio>
         <p>Programa la nómina, los recibos o las cuotas que pagas cada mes y te avisamos antes de que venzan.</p>
-        <Link to="/recurrentes">Programar un pago</Link>
+        <Link to="/recurrentes">Programar un gasto fijo</Link>
       </Vacio>
     );
   }

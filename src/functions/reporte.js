@@ -60,7 +60,7 @@ export const armarReporte = ({ gastos, recurrentes, porId, periodo = "todo", aho
     .sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : a.nombre.localeCompare(b.nombre, "es")));
   const detalle = todos
     .filter((g) => (!desde || g.fecha >= desde) && g.fecha <= hasta)
-    .map((g) => ({ fecha: g.fecha, nombre: g.nombre, categoria: g.categoria, origen: g.pagoId ? "Pago recurrente" : "Gasto", monto: g.monto, pagoId: g.pagoId }));
+    .map((g) => ({ fecha: g.fecha, nombre: g.nombre, categoria: g.categoria, origen: g.pagoId ? "Gasto fijo (pago)" : "Gasto variable", monto: g.monto, pagoId: g.pagoId }));
 
   const total = detalle.reduce((s, g) => s + g.monto, 0);
 

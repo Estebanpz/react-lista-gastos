@@ -35,20 +35,20 @@ test.describe("Reporte en Excel y PDF", () => {
 
     expect(bytes.slice(0, 2).toString()).toBe("PK"); //un .xlsx es un zip, no texto
     const libro = XLSX.read(bytes, { type: "buffer", cellDates: true });
-    expect(libro.SheetNames).toEqual(["Resumen", "Por nombre", "Pagos recurrentes", "Gastos"]);
+    expect(libro.SheetNames).toEqual(["Resumen", "Por nombre", "Gastos fijos (pagos)", "Gastos variables (gastos)"]);
 
-    const gastos = XLSX.utils.sheet_to_json(libro.Sheets.Gastos, { header: 1 });
+    const gastos = XLSX.utils.sheet_to_json(libro.Sheets["Gastos variables (gastos)"], { header: 1 });
     expect(gastos[0]).toEqual(["Fecha", "Nombre", "Categoría", "Origen", "Monto"]);
     const raro = gastos.find((f) => f[1] === NOMBRE_RARO.replace(/\s+/g, " "));
     expect(raro).toBeTruthy(); //nombre completo (con espacios, comas, comillas y «;») en una sola celda
     expect(raro).toHaveLength(5);
     expect(raro[2]).toBe("Créditos");
     expect(raro[4]).toBe(850000);
-    expect(gastos.find((f) => f[1] === "Netflix premium")[3]).toBe("Pago recurrente");
+    expect(gastos.find((f) => f[1] === "Netflix premium")[3]).toBe("Gasto fijo (pago)");
     expect(gastos.some((f) => f[1] === "Gasto muy viejo")).toBe(true);
-    expect(Object.values(libro.Sheets.Gastos).find((c) => c && c.v === "=SUMA(1+1)").t).toBe("s");
+    expect(Object.values(libro.Sheets["Gastos variables (gastos)"]).find((c) => c && c.v === "=SUMA(1+1)").t).toBe("s");
 
-    const pagos = XLSX.utils.sheet_to_json(libro.Sheets["Pagos recurrentes"], { header: 1 });
+    const pagos = XLSX.utils.sheet_to_json(libro.Sheets["Gastos fijos (pagos)"], { header: 1 });
     expect(pagos[1].slice(0, 3)).toEqual(["Netflix premium", "Recibos", "Mensual · día 5"]);
     expect(pagos[1][4]).toBe(30000);
     expect(pagos[1][6]).toBe(1); //veces pagado
@@ -61,7 +61,7 @@ test.describe("Reporte en Excel y PDF", () => {
     await irA(page, "Mi plan");
     await expect(page.getByRole("radio", { name: "Este mes" })).toHaveAttribute("aria-checked", "true");
     const { bytes } = await descargar(page, "Descargar Excel");
-    const gastos = XLSX.utils.sheet_to_json(XLSX.read(bytes, { type: "buffer" }).Sheets.Gastos, { header: 1 });
+    const gastos = XLSX.utils.sheet_to_json(XLSX.read(bytes, { type: "buffer" }).Sheets["Gastos variables (gastos)"], { header: 1 });
     expect(gastos.some((f) => f[1] === "Gasto muy viejo")).toBe(false);
     expect(gastos.some((f) => f[1] === "Netflix premium")).toBe(true);
   });

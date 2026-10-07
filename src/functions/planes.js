@@ -14,8 +14,8 @@ export const ESTADOS_GUARDADOS = ["prueba", "activo", "suspendido"];
 export const CLAVES_LIMITE = ["gastosMes", "pagosActivos", "categorias", "dispositivos"];
 
 export const ETIQUETAS_LIMITE = {
-  gastosMes: "Gastos registrados",
-  pagosActivos: "Pagos recurrentes",
+  gastosMes: "Gastos variables (gastos)",
+  pagosActivos: "Gastos fijos (pagos)",
   categorias: "Categorías propias",
   dispositivos: "Dispositivos con avisos",
 };

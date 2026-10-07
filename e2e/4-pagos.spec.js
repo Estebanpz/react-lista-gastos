@@ -11,7 +11,7 @@ const enTresDias = () => {
 };
 
 const crearPagoSemanal = async (page, descripcion, monto) => {
-  const hoja = page.getByRole("dialog", { name: "Nuevo pago recurrente" });
+  const hoja = page.getByRole("dialog", { name: "Nuevo gasto fijo (pago recurrente)" });
   await hoja.getByLabel("Qué pago es").fill(descripcion);
   await hoja.getByLabel("Monto (COP)").fill(String(monto));
   //debajo del campo se muestra el valor con separador de miles, como en «Añadir gasto»
@@ -26,13 +26,13 @@ const crearPagoSemanal = async (page, descripcion, monto) => {
 test.describe("Pagos recurrentes", () => {
   test("crear un pago, registrarlo como gasto (una sola vez) y verlo en Inicio", async ({ page }) => {
     await registrarUsuario(page, correoUnico("pagos"));
-    await expect(page.getByRole("link", { name: "Programar un pago" })).toBeVisible(); //Inicio sin pagos: nada inventado
+    await expect(page.getByRole("link", { name: "Programar un gasto fijo" })).toBeVisible(); //Inicio sin pagos: nada inventado
 
-    await irA(page, "Pagos");
-    await expect(page.getByRole("heading", { name: "Pagos", level: 1 })).toBeVisible();
-    await expect(page.getByText("Aún no tienes pagos programados")).toBeVisible();
+    await irA(page, "Gastos fijos");
+    await expect(page.getByRole("heading", { name: "Gastos fijos (pagos)", level: 1 })).toBeVisible();
+    await expect(page.getByText("Aún no tienes gastos fijos (pagos) programados")).toBeVisible();
 
-    await page.getByRole("button", { name: "Programar un pago" }).click();
+    await page.getByRole("button", { name: "Programar un gasto fijo" }).click();
     await crearPagoSemanal(page, "Nómina colaboradores", 1200000);
 
     const grupo = page.getByRole("region", { name: /Esta semana \(1\)/ });
@@ -61,15 +61,15 @@ test.describe("Pagos recurrentes", () => {
     //Al avanzar, el pago queda en «Más adelante»
     await expect(page.getByRole("region", { name: /Más adelante \(1\)/ })).toContainText("Nómina colaboradores");
 
-    //Inicio muestra el pago real en «Próximos pagos»
+    //Inicio muestra el pago real en «Próximos gastos fijos (pagos)»
     await irA(page, "Inicio");
-    await expect(page.getByRole("region", { name: "Próximos pagos" })).toContainText("Nómina colaboradores");
+    await expect(page.getByRole("region", { name: "Próximos gastos fijos (pagos)" })).toContainText("Nómina colaboradores");
   });
 
   test("detalle: pausar, editar y borrar con confirmación", async ({ page }) => {
     await registrarUsuario(page, correoUnico("pagos-detalle"));
-    await irA(page, "Pagos");
-    await page.getByRole("button", { name: "Programar un pago" }).click();
+    await irA(page, "Gastos fijos");
+    await page.getByRole("button", { name: "Programar un gasto fijo" }).click();
     await crearPagoSemanal(page, "Recibo de energía", 212500);
 
     await page.getByRole("button", { name: "Recibo de energía: ver detalle" }).click();
@@ -78,7 +78,7 @@ test.describe("Pagos recurrentes", () => {
     await expect(page.getByRole("region", { name: /Pausados \(1\)/ })).toContainText("Recibo de energía");
 
     await detalle.getByRole("button", { name: "Editar" }).click();
-    const hoja = page.getByRole("dialog", { name: "Editar pago" });
+    const hoja = page.getByRole("dialog", { name: "Editar gasto fijo" });
     await hoja.getByLabel("Qué pago es").fill("Recibo de luz");
     await hoja.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(hoja).toBeHidden();
@@ -87,7 +87,7 @@ test.describe("Pagos recurrentes", () => {
     await detalle.getByRole("button", { name: "Borrar" }).click();
     const confirmar = page.getByRole("alertdialog", { name: "¿Borrar este pago?" });
     await confirmar.getByRole("button", { name: /^borrar$/i }).click();
-    await expect(page.getByText("Aún no tienes pagos programados")).toBeVisible();
+    await expect(page.getByText("Aún no tienes gastos fijos (pagos) programados")).toBeVisible();
     await expect.poll(async () => (await documentosEnEmulador("recurrentes")).some((d) => d.descripcion === "Recibo de luz")).toBe(false);
   });
 

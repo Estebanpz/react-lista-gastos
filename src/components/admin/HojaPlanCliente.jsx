@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hoja from "../Hoja";
 import { BotonPrincipal, Espera, MensajeError, MensajeExito } from "../auth/elementos";
-import { Formulario, Etiqueta, Entrada, Seleccion, Ayuda } from "../recurrentes/elementos";
-import { PLANES, IDS_PLAN, limitesDePlan } from "../../functions/planes";
+import { Formulario, Etiqueta, Grupo, Entrada, Seleccion, Ayuda } from "../recurrentes/elementos";
+import { PLANES, IDS_PLAN, CLAVES_LIMITE, ETIQUETAS_LIMITE, limitesDePlan } from "../../functions/planes";
 import { asignarPlan, actualizarCliente } from "../../firebase/clientes";
 import FormatearCantidad from "../../functions/ConvertirAMoneda";
 import { crearClienteConAcceso, urlApiClientes } from "../../firebase/crearCliente";
@@ -22,7 +22,7 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
   const [correo, cambiarCorreo] = useState("");
   const [nombre, cambiarNombre] = useState("");
   const [plan, cambiarPlan] = useState("basico");
-  const [cupo, cambiarCupo] = useState("");
+  const [cupos, cambiarCupos] = useState({}); //cupos a medida (texto); vacío = el del plan
   const [notas, cambiarNotas] = useState("");
   const [error, cambiarError] = useState("");
   const [enviando, cambiarEnviando] = useState(false);
@@ -36,8 +36,12 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
     cambiarCorreo(cliente ? cliente.correo : "");
     cambiarNombre(cliente ? cliente.nombre || "" : "");
     cambiarPlan(cliente ? cliente.plan : "basico");
-    //Solo se muestra como «a medida» si el cupo del cliente difiere del plan
-    cambiarCupo(cliente && cliente.limites.gastosMes !== PLANES[cliente.plan].limites.gastosMes ? String(cliente.limites.gastosMes) : "");
+    //Solo se muestra como «a medida» el cupo del cliente que difiere del plan
+    cambiarCupos(
+      cliente
+        ? Object.fromEntries(CLAVES_LIMITE.filter((k) => cliente.limites[k] !== PLANES[cliente.plan].limites[k]).map((k) => [k, String(cliente.limites[k])]))
+        : {}
+    );
     cambiarNotas(cliente ? cliente.notas || "" : "");
     cambiarError("");
     cambiarEnviando(false);
@@ -51,23 +55,31 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
     const crearConAcceso = !editando && conApi && !uid.trim();
     if (!editando && !crearConAcceso && (uid.trim().length < 20 || /\s/.test(uid.trim()))) return cambiarError("Pega el UID de la cuenta tal como aparece en Firebase → Authentication.");
     if (!/^\S+@\S+\.\S+$/.test(correo.trim())) return cambiarError("Escribe un correo válido.");
-    const gastosMes = cupo.trim() === "" ? null : Number(cupo);
-    if (gastosMes !== null && (!Number.isInteger(gastosMes) || gastosMes < 1)) return cambiarError("El cupo a medida debe ser un número entero mayor que 0, o déjalo vacío.");
+    //Cupos a medida: solo los que se llenaron, enteros mayores que 0
+    const extras = {};
+    for (const k of CLAVES_LIMITE) {
+      const texto = (cupos[k] || "").trim();
+      if (texto === "") continue;
+      const n = Number(texto);
+      if (!Number.isInteger(n) || n < 1) return cambiarError(`El cupo de «${ETIQUETAS_LIMITE[k]}» debe ser un número entero mayor que 0, o déjalo vacío.`);
+      extras[k] = n;
+    }
+    const hayExtras = Object.keys(extras).length > 0;
     cambiarEnviando(true);
     try {
       if (editando) {
         //Cambiar de plan cambia los límites; el cupo a medida (si hay) se aplica encima
-        const limites = limitesDePlan(plan, gastosMes ? { gastosMes } : {});
+        const limites = limitesDePlan(plan, extras);
         await actualizarCliente(cliente.uid, { nombre, notas, plan, limites, estado: cliente.estado === "suspendido" ? undefined : plan === "prueba" ? "prueba" : "activo" });
       } else if (crearConAcceso) {
         const r = await crearClienteConAcceso({ correo, nombre, plan, notas });
-        if (gastosMes) await actualizarCliente(r.uid, { limites: limitesDePlan(plan, { gastosMes }) });
+        if (hayExtras) await actualizarCliente(r.uid, { limites: limitesDePlan(plan, extras) });
         cambiarCreado({ correo: correo.trim().toLowerCase(), ...r });
         cambiarEnviando(false);
         return;
       } else {
         await asignarPlan({ uid, correo, nombre, plan, notas });
-        if (gastosMes) await actualizarCliente(uid.trim(), { limites: limitesDePlan(plan, { gastosMes }) });
+        if (hayExtras) await actualizarCliente(uid.trim(), { limites: limitesDePlan(plan, extras) });
       }
       alCerrar(true);
     } catch (err) {
@@ -136,13 +148,28 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
               </option>
             ))}
           </Seleccion>
-          <Ayuda>{PLANES[plan].limites.gastosMes.toLocaleString("es-CO")} gastos al mes, {PLANES[plan].limites.pagosActivos} pagos recurrentes, {PLANES[plan].limites.categorias} categorías propias.</Ayuda>
+          <Ayuda>{PLANES[plan].limites.gastosMes.toLocaleString("es-CO")} gastos variables al mes, {PLANES[plan].limites.pagosActivos} gastos fijos (pagos), {PLANES[plan].limites.categorias} categorías propias.</Ayuda>
         </div>
-        <div>
-          <Etiqueta htmlFor={`${id}-cupo`}>Cupo de gastos a medida (opcional)</Etiqueta>
-          <Entrada id={`${id}-cupo`} name="cupo" inputMode="numeric" autoComplete="off" placeholder={`Plan: ${PLANES[plan].limites.gastosMes}`} value={cupo} onChange={(e) => cambiarCupo(e.target.value.replace(/\D/g, ""))} />
-          <Ayuda>Vacío = el cupo del plan. Solo tú puedes fijarlo.</Ayuda>
-        </div>
+        <Grupo>
+          <Etiqueta as="legend">Cupos a medida (opcional)</Etiqueta>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))", gap: "0.85rem" }}>
+            {CLAVES_LIMITE.map((k) => (
+              <div key={k}>
+                <Etiqueta htmlFor={`${id}-cupo-${k}`} style={{ textTransform: "none", letterSpacing: 0, fontSize: "0.875rem" }}>{ETIQUETAS_LIMITE[k]}</Etiqueta>
+                <Entrada
+                  id={`${id}-cupo-${k}`}
+                  name={`cupo-${k}`}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder={`Plan: ${PLANES[plan].limites[k]}`}
+                  value={cupos[k] || ""}
+                  onChange={(e) => cambiarCupos({ ...cupos, [k]: e.target.value.replace(/\D/g, "") })}
+                />
+              </div>
+            ))}
+          </div>
+          <Ayuda>Para cuando negocias cantidades distintas a las del plan. Vacío = el cupo del plan. Solo tú puedes fijarlos.</Ayuda>
+        </Grupo>
         <div>
           <Etiqueta htmlFor={`${id}-notas`}>Notas (opcional)</Etiqueta>
           <Entrada id={`${id}-notas`} name="notas" autoComplete="off" maxLength={200} value={notas} onChange={(e) => cambiarNotas(e.target.value)} />

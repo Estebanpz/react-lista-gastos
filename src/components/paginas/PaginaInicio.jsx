@@ -358,7 +358,7 @@ const PaginaInicio = () => {
 
           <Tarjeta aria-labelledby="proximos-titulo" $retraso={0.25}>
             <Cabecera>
-              <h2 id="proximos-titulo">Próximos pagos</h2>
+              <h2 id="proximos-titulo">Próximos gastos fijos (pagos)</h2>
               <VerTodos to="/recurrentes">
                 Ver todos <IconoDerecha tam={16} />
               </VerTodos>

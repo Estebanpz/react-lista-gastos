@@ -174,6 +174,11 @@ const Enlace = styled(NavLink)`
   transition: background-color 0.2s ease, color 0.2s ease;
   touch-action: manipulation;
 
+  /* «Gastos fijos (pagos)» no cabe en la barra inferior del móvil: ahí se muestra «Fijos» */
+  .largo {
+    display: none;
+  }
+
   &.active {
     background: ${theme.violetaSuave};
     color: #3e4bc7;
@@ -189,6 +194,14 @@ const Enlace = styled(NavLink)`
   }
 
   @media (min-width: 60rem) {
+    .largo {
+      display: inline;
+    }
+
+    .corto {
+      display: none;
+    }
+
     flex-direction: row;
     justify-content: flex-start;
     gap: 0.85rem;
@@ -301,7 +314,8 @@ const AppShell = () => {
             </Enlace>
             <Enlace to="/recurrentes">
               <IconoPagos tam={22} />
-              Pagos
+              <span className="largo">Gastos fijos (pagos)</span>
+              <span className="corto">Fijos</span>
             </Enlace>
             <Enlace to="/plan">
               <IconoPlan tam={22} />

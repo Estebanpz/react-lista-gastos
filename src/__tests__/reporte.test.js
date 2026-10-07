@@ -44,8 +44,8 @@ describe("reporte: detalle y nombres intactos", () => {
   });
   test("cada gasto lleva fecha, categoría, origen y monto numérico; más reciente primero", () => {
     const [primero] = armar("todo").detalle;
-    expect(primero).toEqual({ fecha: "2026-10-05", nombre: "Cuota carro; \"Bancolombia\", octubre", categoria: "Créditos", origen: "Gasto", monto: 850000 });
-    expect(armar("todo").detalle.find((g) => g.origen === "Pago recurrente").nombre).toBe("Netflix");
+    expect(primero).toEqual({ fecha: "2026-10-05", nombre: "Cuota carro; \"Bancolombia\", octubre", categoria: "Créditos", origen: "Gasto variable", monto: 850000 });
+    expect(armar("todo").detalle.find((g) => g.origen === "Gasto fijo (pago)").nombre).toBe("Netflix");
   });
 });
 

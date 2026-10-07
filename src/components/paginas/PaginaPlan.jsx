@@ -258,7 +258,7 @@ const PaginaPlan = () => {
           <Tarjeta $i={2} aria-label="Descargar mis datos">
             <h2>Descargar mis datos</h2>
             <p style={{ marginBottom: "0.9rem", fontSize: "0.9375rem", lineHeight: 1.45, color: theme.tintaSuave }}>
-              Reporte con cada gasto y pago por nombre, categoría, monto y fecha, y el estado de tus pagos recurrentes.
+              Reporte con tus gastos variables (gastos) y gastos fijos (pagos) por nombre, categoría, monto y fecha, y el estado de cada gasto fijo.
             </p>
             <div role="radiogroup" aria-label="Periodo del reporte" style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               {PERIODOS.map((p) => (

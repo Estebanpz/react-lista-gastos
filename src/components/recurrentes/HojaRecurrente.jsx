@@ -100,7 +100,7 @@ const HojaRecurrente = ({ abierta, alCerrar, recurrente }) => {
         //Con el cupo del plan lleno no se puede crear otro (las reglas también lo impiden)
         const ranura = recurrentes.length >= limites.pagosActivos ? null : ranuraLibre(usuario.uid, recurrentes.map((r) => r.id), limites.pagosActivos);
         if (!ranura) {
-          cambiarErrores({ general: `Tu plan permite hasta ${limites.pagosActivos} pagos recurrentes. Borra uno o cambia de plan.` });
+          cambiarErrores({ general: `Tu plan permite hasta ${limites.pagosActivos} gastos fijos (pagos). Borra uno o cambia de plan.` });
           cambiarEnviando(false);
           return;
         }
@@ -115,7 +115,7 @@ const HojaRecurrente = ({ abierta, alCerrar, recurrente }) => {
   };
 
   return (
-    <Hoja abierta={abierta} alCerrar={() => alCerrar(false)} titulo={recurrente ? "Editar pago" : "Nuevo pago recurrente"} subtitulo={`Te avisamos ${DIAS_ANTES_AVISO} días antes y el mismo día del pago.`}>
+    <Hoja abierta={abierta} alCerrar={() => alCerrar(false)} titulo={recurrente ? "Editar gasto fijo" : "Nuevo gasto fijo (pago recurrente)"} subtitulo={`Te avisamos ${DIAS_ANTES_AVISO} días antes y el mismo día del pago.`}>
       <Formulario onSubmit={guardar} noValidate aria-busy={enviando}>
         <div>
           <Etiqueta htmlFor={id("descripcion")}>Qué pago es</Etiqueta>

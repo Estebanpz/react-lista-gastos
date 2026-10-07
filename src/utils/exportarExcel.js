@@ -53,14 +53,14 @@ const hojaTabla = (encabezados, filas, anchos, { desdeFila = 0, titulo } = {}) =
 const hojaResumen = (r) => {
   const k = r.resumen;
   const filas = [
-    [texto("Finanzas · Reporte de gastos y pagos", estilos.titulo), ...Array(3).fill(texto("", estilos.titulo))],
+    [texto("Finanzas · Reporte de gastos variables y fijos", estilos.titulo), ...Array(3).fill(texto("", estilos.titulo))],
     [texto(`${r.meta.correo || "Cuenta"} · ${r.meta.etiquetaPeriodo}${r.meta.desde ? ` (${r.meta.desde} a ${r.meta.hasta})` : ""} · generado el ${r.meta.generado}`, estilos.subtitulo), ...Array(3).fill(texto("", estilos.subtitulo))],
     [],
     [texto("Total del periodo", estilos.seccion)],
     [texto("Total gastado", estilos.etiqueta), numero(k.total, celda(0, { font: { ...FUENTE, bold: true } }), FORMATO_PESOS)],
     [texto("Número de gastos", estilos.etiqueta), numero(k.cantidad, celda(1), "0")],
-    [texto("De ellos, pagos recurrentes", estilos.etiqueta), numero(k.totalPagosRecurrentes, celda(0), FORMATO_PESOS)],
-    [texto("Pagos recurrentes activos", estilos.etiqueta), numero(k.pagosActivos, celda(1), "0")],
+    [texto("De ellos, gastos fijos (pagos)", estilos.etiqueta), numero(k.totalPagosRecurrentes, celda(0), FORMATO_PESOS)],
+    [texto("Gastos fijos (pagos) activos", estilos.etiqueta), numero(k.pagosActivos, celda(1), "0")],
     [texto("Costo mensual aproximado de esos pagos", estilos.etiqueta), numero(k.pagosMensualEstimado, celda(0), FORMATO_PESOS)],
     [],
     [texto("Por categoría", estilos.seccion)],
@@ -79,14 +79,14 @@ const hojaPorNombre = (r) =>
     ["Nombre", "Categoría", "Veces", "Total", "Promedio", "Primera fecha", "Última fecha", "Tipo"],
     r.porNombre.map((n, i) => [
       texto(n.nombre, celda(i)), texto(n.categoria, celda(i)), numero(n.veces, celda(i), "0"), numero(n.total, celda(i), FORMATO_PESOS),
-      numero(n.promedio, celda(i), FORMATO_PESOS), fecha(n.primera, celda(i)), fecha(n.ultima, celda(i)), texto(n.esPago ? "Pago recurrente" : "Gasto", celda(i)),
+      numero(n.promedio, celda(i), FORMATO_PESOS), fecha(n.primera, celda(i)), fecha(n.ultima, celda(i)), texto(n.esPago ? "Gasto fijo (pago)" : "Gasto variable", celda(i)),
     ]),
     [38, 20, 9, 16, 16, 15, 15, 17]
   );
 
 const hojaPagos = (r) =>
   hojaTabla(
-    ["Nombre del pago", "Categoría", "Frecuencia", "Próximo vencimiento", "Monto", "Estado", "Veces pagado en el periodo", "Total pagado en el periodo", "Última fecha pagada"],
+    ["Nombre del gasto fijo (pago)", "Categoría", "Frecuencia", "Próximo vencimiento", "Monto", "Estado", "Veces pagado en el periodo", "Total pagado en el periodo", "Última fecha pagada"],
     r.pagos.map((p, i) => [
       texto(p.nombre, celda(i)), texto(p.categoria, celda(i)), texto(p.frecuencia, celda(i)), fecha(p.proximoVencimiento, celda(i)), numero(p.monto, celda(i), FORMATO_PESOS),
       texto(p.estado, celda(i, { font: { ...FUENTE, bold: true, color: { rgb: p.estado === "Vencido" ? "B42318" : p.estado === "Pausado" ? "6B7280" : p.estado === "Al día" ? "1F6F3A" : "93370D" } }, alignment: { horizontal: "center", vertical: "center" } })),
@@ -107,8 +107,8 @@ export const construirLibro = (reporte) => {
   const libro = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(libro, hojaResumen(reporte), "Resumen");
   XLSX.utils.book_append_sheet(libro, hojaPorNombre(reporte), "Por nombre");
-  XLSX.utils.book_append_sheet(libro, hojaPagos(reporte), "Pagos recurrentes");
-  XLSX.utils.book_append_sheet(libro, hojaGastos(reporte), "Gastos");
+  XLSX.utils.book_append_sheet(libro, hojaPagos(reporte), "Gastos fijos (pagos)");
+  XLSX.utils.book_append_sheet(libro, hojaGastos(reporte), "Gastos variables (gastos)");
   return libro;
 };
 

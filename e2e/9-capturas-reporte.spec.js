@@ -28,3 +28,19 @@ test("reporte de ejemplo", async ({ page }) => {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${DIR}/mi_plan_descargas.png`, fullPage: true });
 });
+
+test.describe("móvil", () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  test("menú y gastos fijos en el móvil", async ({ page }) => {
+    const uid = await registrarUsuario(page, correoUnico("movilfijos"), { plan: "plus", diasVence: 20 });
+    await sembrarDocumento(`recurrentes/${uid}_1`, { uidUsuario: uid, descripcion: "Nómina quincenal colaboradores", cantidad: 2100000, categoria: "nomina", frecuencia: "quincenal", dia: 0, mes: 0, proximaFecha: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), activo: true, creado: new Date() });
+    await page.getByRole("navigation", { name: "Principal" }).getByRole("link", { name: "Fijos" }).tap();
+    await page.getByRole("heading", { name: "Gastos fijos (pagos)" }).waitFor();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${DIR}/movil_gastos_fijos.png` });
+    await page.getByRole("button", { name: /Nuevo gasto fijo/ }).tap();
+    await page.getByLabel("Monto (COP)").fill("2100000");
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: `${DIR}/movil_nuevo_gasto_fijo.png` });
+  });
+});

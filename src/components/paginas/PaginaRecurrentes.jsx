@@ -328,16 +328,16 @@ const PaginaRecurrentes = () => {
   return (
     <>
       <Helmet>
-        <title>Pagos · Finanzas</title>
+        <title>Gastos fijos (pagos) · Finanzas</title>
       </Helmet>
 
       <Cabecera>
         <div>
-          <h1>Pagos</h1>
+          <h1>Gastos fijos (pagos)</h1>
           <p>Nómina, recibos y créditos que se repiten</p>
         </div>
         <BotonNuevo type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>
-          <IconoMas tam={20} /> Nuevo pago
+          <IconoMas tam={20} /> Nuevo gasto fijo
         </BotonNuevo>
       </Cabecera>
 
@@ -355,9 +355,9 @@ const PaginaRecurrentes = () => {
           {!cargando && !error && recurrentes.length === 0 && (
             <Vacio>
               <Ilustracion nombre="recordatorio" ancho="12rem" />
-              <strong>Aún no tienes pagos programados</strong>
+              <strong>Aún no tienes gastos fijos (pagos) programados</strong>
               <p>Agrega la nómina, el arriendo, los recibos o las cuotas que se repiten y te avisamos 3 días antes y el mismo día.</p>
-              <BotonPrincipal type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>Programar un pago</BotonPrincipal>
+              <BotonPrincipal type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>Programar un gasto fijo</BotonPrincipal>
             </Vacio>
           )}
 
@@ -424,7 +424,7 @@ const PaginaRecurrentes = () => {
       {recurrentes.length > 0 &&
         ReactDOM.createPortal(
           <Flotante type="button" disabled={!puedeEscribir} onClick={() => cambiarEdicion({})}>
-            <IconoMas tam={22} /> Nuevo pago
+            <IconoMas tam={22} /> Nuevo gasto fijo
           </Flotante>,
           document.body
         )}

@@ -19,11 +19,11 @@ const leer = () => XLSX.read(construirExcel(reporte), { type: "array" });
 
 describe("Excel del reporte", () => {
   test("cuatro hojas con nombre", () => {
-    expect(leer().SheetNames).toEqual(["Resumen", "Por nombre", "Pagos recurrentes", "Gastos"]);
+    expect(leer().SheetNames).toEqual(["Resumen", "Por nombre", "Gastos fijos (pagos)", "Gastos variables (gastos)"]);
   });
 
   test("un nombre con espacios, comas, comillas y «;» queda en UNA sola celda de texto", () => {
-    const hoja = leer().Sheets.Gastos;
+    const hoja = leer().Sheets["Gastos variables (gastos)"];
     const filas = XLSX.utils.sheet_to_json(hoja, { header: 1 });
     expect(filas[0]).toEqual(["Fecha", "Nombre", "Categoría", "Origen", "Monto"]);
     const fila = filas.find((f) => f[1] === NOMBRE_RARO.replace(/\s+/g, " "));
@@ -32,24 +32,24 @@ describe("Excel del reporte", () => {
   });
 
   test("las fórmulas escritas como nombre se guardan como texto, no se ejecutan", () => {
-    const hoja = leer().Sheets.Gastos;
+    const hoja = leer().Sheets["Gastos variables (gastos)"];
     const celda = Object.values(hoja).find((c) => c && c.v === "=SUMA(1+1)");
     expect(celda.t).toBe("s");
     expect(celda.f).toBeUndefined();
   });
 
   test("monto = número y fecha = fecha real (con formato), no texto", () => {
-    const hoja = leer().Sheets.Gastos;
+    const hoja = leer().Sheets["Gastos variables (gastos)"];
     expect(hoja.E2.t).toBe("n");
     expect(typeof hoja.E2.v).toBe("number");
     expect(hoja.A2.t).toBe("n");
     const libro = XLSX.read(construirExcel(reporte), { type: "array", cellDates: true, cellNF: true });
-    expect(libro.Sheets.Gastos.A2.t).toBe("d");
-    expect(libro.Sheets.Gastos.A2.v.toISOString().slice(0, 10)).toBe("2026-10-05");
+    expect(libro.Sheets["Gastos variables (gastos)"].A2.t).toBe("d");
+    expect(libro.Sheets["Gastos variables (gastos)"].A2.v.toISOString().slice(0, 10)).toBe("2026-10-05");
   });
 
   test("la hoja de pagos recurrentes trae nombre, frecuencia, vencimiento, monto y última fecha pagada", () => {
-    const filas = XLSX.utils.sheet_to_json(leer().Sheets["Pagos recurrentes"], { header: 1 });
+    const filas = XLSX.utils.sheet_to_json(leer().Sheets["Gastos fijos (pagos)"], { header: 1 });
     expect(filas[0]).toContain("Próximo vencimiento");
     expect(filas[0]).toContain("Última fecha pagada");
     expect(filas[1][0]).toBe("Netflix");

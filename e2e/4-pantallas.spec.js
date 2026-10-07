@@ -203,7 +203,7 @@ test.describe("Pantallas nuevas en el móvil (táctil)", () => {
     await hoja.getByRole("button", { name: /^guardar gasto/i }).tap();
     await expect(hoja.getByText("¡Gasto guardado!")).toBeVisible();
     await hoja.getByRole("link", { name: "Ver mi lista" }).tap();
-    await expect(page.getByRole("heading", { name: "Lista de gastos", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Gastos variables (gastos)", level: 1 })).toBeVisible();
 
     //deslizar la fila muestra «Editar» y «Borrar»
     const fila = page.getByRole("button", { name: /Taxi a la oficina/ });

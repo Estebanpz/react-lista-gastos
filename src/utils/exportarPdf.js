@@ -40,7 +40,7 @@ export const construirPdf = (reporte) => {
   doc.text("Finanzas", MARGEN, 38);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Reporte de gastos y pagos recurrentes", MARGEN, 56);
+  doc.text("Reporte de gastos variables y gastos fijos (pagos)", MARGEN, 56);
   doc.text(limpiarParaPdf(`Generado el ${fechaCorta(reporte.meta.generado)}`), ancho - MARGEN, 56, { align: "right" });
   doc.setFillColor(255, 255, 255);
   doc.rect(MARGEN, 63, 30, 2.5, "F");
@@ -54,8 +54,8 @@ export const construirPdf = (reporte) => {
   //Tarjetas
   const tarjetas = [
     ["TOTAL GASTADO", moneda(k.total), `${k.cantidad} ${k.cantidad === 1 ? "gasto" : "gastos"}`],
-    ["PAGOS RECURRENTES", String(k.pagosActivos), `activos · ${moneda(k.pagosMensualEstimado)} al mes aprox.`],
-    ["PAGADO EN RECURRENTES", moneda(k.totalPagosRecurrentes), "dentro del periodo"],
+    ["GASTOS FIJOS (PAGOS)", String(k.pagosActivos), `activos · ${moneda(k.pagosMensualEstimado)} al mes aprox.`],
+    ["PAGADO EN GASTOS FIJOS", moneda(k.totalPagosRecurrentes), "dentro del periodo"],
   ];
   const separacion = 10;
   const anchoTarjeta = (ancho - MARGEN * 2 - separacion * 2) / 3;
@@ -122,11 +122,11 @@ export const construirPdf = (reporte) => {
     });
   });
 
-  seccion("Pagos recurrentes", "Nombre de cada pago, cuándo vence y cuánto se ha pagado en el periodo.", (inicio) => {
-    if (!reporte.pagos.length) return vacio(inicio, "No hay pagos recurrentes programados.");
+  seccion("Gastos fijos (pagos)", "Nombre de cada gasto fijo, cuándo vence y cuánto se ha pagado en el periodo.", (inicio) => {
+    if (!reporte.pagos.length) return vacio(inicio, "No hay gastos fijos (pagos) programados.");
     autoTable(doc, {
       ...estiloBase, startY: inicio,
-      head: [["Nombre del pago", "Frecuencia", "Próx. vencimiento", "Monto", "Estado", "Pagado en el periodo", "Última fecha pagada"]],
+      head: [["Nombre del gasto fijo", "Frecuencia", "Próx. vencimiento", "Monto", "Estado", "Pagado en el periodo", "Última fecha pagada"]],
       body: reporte.pagos.map((p) => [limpiarParaPdf(p.nombre), limpiarParaPdf(p.frecuencia), fechaCorta(p.proximoVencimiento), moneda(p.monto), p.estado, `${p.vecesPagado} · ${moneda(p.totalPagado)}`, fechaCorta(p.ultimaFechaPagada)]),
       columnStyles: { 0: { cellWidth: 100 }, 2: { halign: "center" }, 3: { halign: "right" }, 4: { halign: "center", fontStyle: "bold" }, 5: { halign: "right" }, 6: { halign: "center" } },
       didParseCell: (d) => {
@@ -145,7 +145,7 @@ export const construirPdf = (reporte) => {
     });
   });
 
-  seccion("Detalle de gastos", "Cada gasto con su fecha, de más reciente a más antiguo.", (inicio) => {
+  seccion("Detalle: gastos variables (gastos) y fijos (pagos)", "Cada uno con su fecha, de más reciente a más antiguo.", (inicio) => {
     if (!reporte.detalle.length) return vacio(inicio, "Sin gastos en este periodo.");
     autoTable(doc, {
       ...estiloBase, startY: inicio,
