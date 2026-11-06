@@ -1,6 +1,6 @@
 # Plan: historial del cliente, barra con fijos, días de prueba y SMS de recordatorio
 
-Estado: **Fase 0 en curso** (6 nov 2026): rama creada y `npm ci` hecho; falta correr las reglas con Node v22.19.0 y los pasos 4 a 6. Se ejecuta en la rama `feature/admin-prueba-sms`, en el orden de este documento,
+Estado: **Fases 0–3 hechas** (commits 871e4eb, 46db888, c432463, ce588be; 6 nov 2026). Sigue la Fase 4 tras la vista previa del dueño. Se ejecuta en la rama `feature/admin-prueba-sms`, en el orden de este documento,
 con multi-agentes (§3). Al aprobarse, este archivo se copia tal cual a `docs/PLAN_ADMIN_PRUEBA_SMS.md` (Fase 0).
 
 > Para quien implementa: este documento manda. Copia tal cual los nombres, rutas, textos y código. Si el código no coincide con lo
@@ -91,7 +91,7 @@ Prompt del `revisor` (Fase 6): «Solo lectura. Compara `git diff master...HEAD` 
 - Mismo error 3 veces → para y reporta qué probaste.
 - Nada `undefined` hacia Firestore: los campos opcionales se añaden solo si tienen valor (el plan ya lo hace así).
 - `src/functions/*.js` lo importa también el Worker: sin dependencias de React ni Firebase en esos archivos.
-- Firebase CLI solo está instalado en Node v22.19.0 de nvm: todo comando que use el emulador (`npm run test:reglas`, `npm run e2e`, `npm run test:emulador` del Worker) se corre con `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH` delante. No instales firebase-tools.
+- Node: se usa **v22.23.4** (la de parche al día; `.nvmrc` = 22). Firebase CLI lo instala el dueño en esa versión (`npm install -g firebase-tools`); los comandos con emulador (`npm run test:reglas`, `npm run e2e`, `npm run test:emulador`) se corren tal cual. No uses v22.19.0 ni antepongas rutas de nvm; tú no instales firebase-tools.
 - Verificación de la app: `CI=true npm test -- --watchAll=false` y `CI=true npm run build` (con `CI=true` un warning de ESLint es error).
 - Formato del reporte en cada PARAR AQUÍ: qué hiciste, qué comprobaste (con cifras), qué falló, qué debe revisar el dueño.
 
@@ -108,7 +108,7 @@ Prompt del `revisor` (Fase 6): «Solo lectura. Compara `git diff master...HEAD` 
 
 1. `git checkout master && git pull --ff-only && git checkout -b feature/admin-prueba-sms`.
 2. `npm ci` y `cd worker-recordatorios && npm ci && cd ..`.
-3. Corre y anota las cifras: `CI=true npm test -- --watchAll=false` (línea base comprobada: 29 suites, **252** pruebas), `cd worker-recordatorios && npm test` (30 pruebas: api 10, planes 5, recordatorios 13, emulador 2 omitidas sin emulador), `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH npm run test:reglas` (**101 correctos, 0 fallidos**). Si algo ya falla, **para** y di qué archivo.
+3. Corre y anota las cifras: `CI=true npm test -- --watchAll=false` (línea base comprobada: 29 suites, **252** pruebas), `cd worker-recordatorios && npm test` (30 pruebas: api 10, planes 5, recordatorios 13, emulador 2 omitidas sin emulador), `npm run test:reglas` (**101 correctos, 0 fallidos**). Si algo ya falla, **para** y di qué archivo.
 4. Copia este archivo tal cual: `mkdir -p docs && cp /home/esteban/.claude/plans/mejoras-1-historial-de-fizzy-dahl.md docs/PLAN_ADMIN_PRUEBA_SMS.md`.
 5. En `CLAUDE.md`, justo antes de la sección `## Diseño`, añade esta sección tal cual (el dueño pidió dejar documentada la API para no volver a preguntarla):
 
@@ -210,7 +210,7 @@ d) En el bloque «Planes de clientes y super admin», después del primer caso, 
 
 Si en el archivo el administrador no se llama `root` o el entorno no se llama `env`, **para** y reporta los nombres reales.
 
-**1.5 Comprobar y cerrar.** `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH npm run test:reglas` → 101 + 4 = **105 correctos**, 0 fallidos. Commit (`git add firestore.rules scripts/probar-reglas.js`):
+**1.5 Comprobar y cerrar.** `npm run test:reglas` → 101 + 4 = **105 correctos**, 0 fallidos. Commit (`git add firestore.rules scripts/probar-reglas.js`):
 `Reglas: contador de fijos, celular para SMS y marca ultimoSms`
 
 ---
@@ -994,7 +994,7 @@ Commit (`git add` de los 13 archivos de 3A y 3B): `Panel admin: historial pagina
 
 **PARAR AQUÍ.** Reporta las cifras. El dueño revisa en una vista previa (regla del dueño: vista previa antes de seguir). Antes debe
 desplegar las reglas de la Fase 1 (ver «Lo que hace el dueño», pasos 1–2), porque la vista previa usa el Firestore real.
-Comando que el dueño corre: `npm run build && PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH firebase hosting:channel:deploy admin-prueba-sms --expires 7d`.
+Comando que el dueño corre: `npm run build && firebase hosting:channel:deploy admin-prueba-sms --expires 7d`.
 
 ---
 
@@ -1882,7 +1882,7 @@ test("el cliente guarda su celular y enciende el SMS del día del pago", async (
 });
 ```
 
-**6.4 Correr.** `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH npm run e2e` (antes 44; ahora **46**, 0 fallos). Si falla algo que no es de estas pruebas, para y di cuál.
+**6.4 Correr.** `npm run e2e` (antes 44; ahora **46**, 0 fallos). Si falla algo que no es de estas pruebas, para y di cuál.
 
 **6.5 `CLAUDE.md`.** Actualiza (textos exactos):
 
@@ -1909,8 +1909,8 @@ test("el cliente guarda su celular y enciende el SMS del día del pago", async (
 ## Lo que hace el dueño
 
 1. Revisar el plan y, al final, el diff.
-2. **Desplegar reglas** (tras la Fase 1, antes de la vista previa): `PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH firebase deploy --only firestore:rules`.
-3. Vista previa tras la Fase 3 y la 5: `npm run build && PATH=$HOME/.nvm/versions/node/v22.19.0/bin:$PATH firebase hosting:channel:deploy admin-prueba-sms --expires 7d` (usa el Firestore real).
+2. **Desplegar reglas** (tras la Fase 1, antes de la vista previa): `firebase deploy --only firestore:rules`.
+3. Vista previa tras la Fase 3 y la 5: `npm run build && firebase hosting:channel:deploy admin-prueba-sms --expires 7d` (usa el Firestore real).
 4. **Secretos del Worker** (nunca en el repo ni en `.env`): `cd worker-recordatorios && npx wrangler secret put LABS_MOBILE_USER` (correo de la cuenta de LabsMobile) y `npx wrangler secret put LABS_MOBILE_TOKEN` (token de «Configuración API»). Para `wrangler dev` en local van en `worker-recordatorios/.dev.vars` (ignorado por git).
 5. **Desplegar el Worker**: actualizar `compatibility_date` a la fecha del día, `npm test` y `npx wrangler deploy`. Comprobar en el panel de Cloudflare que aparezcan los dos crons.
 6. **Prueba real del SMS programado** (no se puede en modo test: code 41): con tu propia cuenta de cliente, celular y «Recordarme por SMS» encendido, crea un gasto fijo que venza mañana. Al día siguiente a las 8:00 revisa en el panel de LabsMobile → Historial/Programados que aparezca el envío con subid `f…AAAAMMDD` para las 13:30 GMT. Para probar la cancelación (LabsMobile confirmó que se cancela con el mismo `subid`), regístralo entre las 8:00 y las 8:30 y verifica que desaparezca de Programados y que en Firestore `clientes/{tu uid}.ultimoSms` termine en `|cancelado`. Revisa también si el remitente sale con tu nombre o con un código corto del operador.
