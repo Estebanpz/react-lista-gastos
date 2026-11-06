@@ -176,8 +176,8 @@ const TarjetaAvisos = ({ siempre = false }) => {
   };
 
   const textos = {
-    disponible: { titulo: "Avisos en este dispositivo", cuerpo: `Te avisamos ${DIAS_ANTES_AVISO} días antes y el mismo día de cada pago, aunque la app esté cerrada.` },
-    activo: { titulo: "Avisos activados", cuerpo: `Este dispositivo recibe los avisos ${DIAS_ANTES_AVISO} días antes y el mismo día de cada pago.` },
+    disponible: { titulo: "Avisos en este dispositivo", cuerpo: `Te avisamos ${DIAS_ANTES_AVISO} días antes y el día de cada pago, a las 8:30 a. m. y cada 3 horas hasta que lo registres, aunque la app esté cerrada.` },
+    activo: { titulo: "Avisos activados", cuerpo: `Este dispositivo recibe los avisos ${DIAS_ANTES_AVISO} días antes y el día de cada pago (8:30 a. m. y cada 3 horas hasta que lo registres).` },
     denegado: { titulo: "Los avisos están bloqueados", cuerpo: "Actívalos en los ajustes del sitio (el candado junto a la dirección) y vuelve a esta pantalla." },
     "ios-sin-instalar": { titulo: "Instala la app para recibir avisos", cuerpo: "En iPhone los avisos solo llegan con la app instalada en tu pantalla de inicio." },
   }[estado];

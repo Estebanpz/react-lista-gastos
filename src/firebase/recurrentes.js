@@ -4,6 +4,7 @@ import { getUnixTime } from "date-fns";
 import esperarEscritura from "./esperarEscritura";
 import { siguienteFecha } from "../functions/recurrencias";
 import { sumarUsoDeGasto } from "./AgregarGasto";
+import { pedirRevisionSms } from "./sms";
 
 //Pagos recurrentes (nómina, recibos, créditos…). Colección `recurrentes`:
 //{descripcion, cantidad, categoria, frecuencia, dia, mes, proximaFecha (AAAA-MM-DD), activo, creado, uidUsuario}
@@ -21,6 +22,13 @@ const campos = ({ descripcion, cantidad, categoria, frecuencia, dia, mes, proxim
   proximaFecha,
 });
 
+//Tras un cambio ya sincronizado que puede dejar un SMS programado sin motivo, se pide revisarlo (sin esperar la respuesta)
+const conRevisionSms = (promesa, proximaFecha) =>
+  promesa.then((estado) => {
+    if (estado === "sincronizado") pedirRevisionSms(proximaFecha);
+    return estado;
+  });
+
 //El id es una ranura fija `{uid}_{n}` (ver planes.js), elegida en el cliente: sirve de inmediato, incluso sin conexión
 export const crearRecurrente = async (datos, idRanura) => {
   const referencia = doc(db, "recurrentes", idRanura);
@@ -32,9 +40,9 @@ export const crearRecurrente = async (datos, idRanura) => {
 
 export const actualizarRecurrente = (id, datos) => esperarEscritura(updateDoc(doc(db, "recurrentes", id), campos(datos)));
 
-export const pausarRecurrente = (id, activo) => esperarEscritura(updateDoc(doc(db, "recurrentes", id), { activo }));
+export const pausarRecurrente = (id, activo) => (activo ? esperarEscritura(updateDoc(doc(db, "recurrentes", id), { activo })) : conRevisionSms(esperarEscritura(updateDoc(doc(db, "recurrentes", id), { activo })), null));
 
-export const borrarRecurrente = (id) => esperarEscritura(deleteDoc(doc(db, "recurrentes", id)));
+export const borrarRecurrente = (id) => conRevisionSms(esperarEscritura(deleteDoc(doc(db, "recurrentes", id))), null);
 
 //Id del gasto que genera un pago: fijo por pago y vencimiento, así un doble toque, el modo sin conexión
 //o dos dispositivos no crean el gasto dos veces (el segundo intento sobrescribe el mismo documento).
@@ -53,9 +61,9 @@ export const registrarPago = (recurrente, { cantidad, fecha }) => {
   });
   sumarUsoDeGasto(lote, auth.currentUser.uid, { fijo: true }); //el gasto cuenta para el límite mensual del plan
   lote.update(doc(db, "recurrentes", recurrente.id), { proximaFecha: siguienteFecha(recurrente, recurrente.proximaFecha) });
-  return esperarEscritura(lote.commit());
+  return conRevisionSms(esperarEscritura(lote.commit()), recurrente.proximaFecha);
 };
 
 //Salta este vencimiento sin crear gasto
 export const omitirPago = (recurrente) =>
-  esperarEscritura(updateDoc(doc(db, "recurrentes", recurrente.id), { proximaFecha: siguienteFecha(recurrente, recurrente.proximaFecha) }));
+  conRevisionSms(esperarEscritura(updateDoc(doc(db, "recurrentes", recurrente.id), { proximaFecha: siguienteFecha(recurrente, recurrente.proximaFecha) })), recurrente.proximaFecha);

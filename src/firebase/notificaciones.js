@@ -80,7 +80,7 @@ const guardarToken = async (uid, token) => {
   guardarLocal({ id, uid, fecha: Date.now() });
 };
 
-const zonaHoraria = () => {
+export const zonaHoraria = () => {
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Bogota";
   } catch {
@@ -89,8 +89,10 @@ const zonaHoraria = () => {
 };
 
 //Perfil que lee el Worker: zona horaria (para saber qué día es «hoy») y si el aviso puede mostrar descripciones
+//Perfil que lee el Worker: zona horaria (para saber qué día es «hoy») y si el aviso puede mostrar descripciones.
+//Con merge: no borra el celular ni la preferencia de SMS (los guarda firebase/sms.js en el mismo documento).
 export const guardarPreferencias = (uid, { detalleEnAviso }) =>
-  esperarEscritura(setDoc(doc(db, "usuarios", uid), { zona: zonaHoraria(), detalleEnAviso: Boolean(detalleEnAviso), actualizado: serverTimestamp() }));
+  esperarEscritura(setDoc(doc(db, "usuarios", uid), { zona: zonaHoraria(), detalleEnAviso: Boolean(detalleEnAviso), actualizado: serverTimestamp() }, { merge: true }));
 
 //Solo se llama desde un clic (los navegadores bloquean el permiso pedido sin un gesto de la persona).
 //Devuelve "activo" o "denegado"; lanza un error si algo más falla.

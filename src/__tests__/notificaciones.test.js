@@ -69,7 +69,7 @@ describe("notificaciones", () => {
     expect(window.Notification.requestPermission).toHaveBeenCalled();
     expect(mockMensajeria.getToken).toHaveBeenCalledWith({}, { vapidKey: "vapid-publica", serviceWorkerRegistration: registro });
     expect(fs.setDoc).toHaveBeenCalledWith(`usuarios/ana/tokens/${ID}`, expect.objectContaining({ token: TOKEN, actualizado: "ahora" }));
-    expect(fs.setDoc).toHaveBeenCalledWith("usuarios/ana", expect.objectContaining({ detalleEnAviso: true, actualizado: "ahora", zona: expect.any(String) }));
+    expect(fs.setDoc).toHaveBeenCalledWith("usuarios/ana", expect.objectContaining({ detalleEnAviso: true, actualizado: "ahora", zona: expect.any(String) }), { merge: true });
     //en el dispositivo solo queda el hash, nunca el token
     expect(localStorage.getItem("avisos:dispositivo:v1")).toContain(ID);
     expect(localStorage.getItem("avisos:dispositivo:v1")).not.toContain(TOKEN);

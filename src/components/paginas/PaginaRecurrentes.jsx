@@ -15,6 +15,7 @@ import DetalleRecurrente from "../recurrentes/DetalleRecurrente";
 import HojaRecurrente from "../recurrentes/HojaRecurrente";
 import HojaRegistrarPago from "../recurrentes/HojaRegistrarPago";
 import TarjetaAvisos from "../recurrentes/TarjetaAvisos";
+import TarjetaSms from "../recurrentes/TarjetaSms";
 import { estadoVisible } from "../recurrentes/EstadoPago";
 import ConfirmarBorrado from "../gastos/ConfirmarBorrado";
 import Hoja from "../Hoja";
@@ -379,8 +380,9 @@ const PaginaRecurrentes = () => {
               </Resumen>
 
               {!esEscritorio && (
-                <div style={{ marginTop: "1rem" }}>
+                <div style={{ marginTop: "1rem", display: "grid", gap: "1rem" }}>
                   <TarjetaAvisos />
+                  <TarjetaSms />
                 </div>
               )}
 
@@ -417,6 +419,7 @@ const PaginaRecurrentes = () => {
             </Panel>
           )}
           <TarjetaAvisos siempre />
+          {esEscritorio && <TarjetaSms />}
         </Lateral>
       </Diseno>
 

@@ -44,6 +44,13 @@ describe("armarNotificacion (push recibido en el service worker)", () => {
   test("opciones visuales: icono, insignia, tag y español", () => {
     expect(OPCIONES_BASE).toMatchObject({ icon: "/icono-192.png", badge: "/insignia-96.png", tag: "recordatorios", lang: "es-CO" });
   });
+
+  test("el día del pago el título dice que vence hoy y pide registrarlo", () => {
+    const uno = armarNotificacion(fcm({ tipo: "recordatorio", cantidad: "1", hoy: "1", url: "/recurrentes" }));
+    expect(uno.titulo).toBe("Hoy vence un pago");
+    expect(uno.opciones.body).toBe("Regístralo para dejar de recibir este aviso.");
+    expect(armarNotificacion(fcm({ tipo: "recordatorio", cantidad: "3", hoy: "1" })).titulo).toBe("Hoy vencen 3 pagos");
+  });
 });
 
 describe("avisos de plan", () => {

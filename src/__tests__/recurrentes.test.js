@@ -10,6 +10,7 @@ jest.mock("firebase/firestore", () => ({
   serverTimestamp: jest.fn(() => "ahora"),
   increment: jest.fn((n) => ({ incremento: n })),
 }));
+jest.mock("../firebase/sms", () => ({ pedirRevisionSms: jest.fn() }));
 
 import * as fs from "firebase/firestore";
 import { crearRecurrente, registrarPago, omitirPago, idGastoDePago, actualizarRecurrente } from "../firebase/recurrentes";

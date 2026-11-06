@@ -58,12 +58,19 @@ export const armarNotificacion = (carga) => {
   const cantidad = Number.parseInt(datos.cantidad, 10);
   if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 99) return GENERICO;
 
-  const titulo = cantidad === 1 ? "Tienes un pago próximo" : `Tienes ${cantidad} pagos próximos`;
+  //El día del pago (hoy = "1") el aviso se repite por turnos hasta que la persona lo registre
+  const hoy = datos.hoy === "1";
+  const titulo = hoy
+    ? cantidad === 1 ? "Hoy vence un pago" : `Hoy vencen ${cantidad} pagos`
+    : cantidad === 1 ? "Tienes un pago próximo" : `Tienes ${cantidad} pagos próximos`;
   const detalle = limpiarTexto(datos.detalle);
+  const porDefecto = hoy
+    ? cantidad === 1 ? "Regístralo para dejar de recibir este aviso." : "Regístralos para dejar de recibir este aviso."
+    : "Ábrela para ver cuándo vencen y registrar el pago.";
   return {
     titulo,
     opciones: {
-      body: detalle || "Ábrela para ver cuándo vencen y registrar el pago.",
+      body: detalle || porDefecto,
       data: { url: rutaSegura(datos.url), cantidad },
     },
   };
