@@ -1,9 +1,9 @@
-//API mínima para el panel de super admin. Hoy una sola operación: crear un cliente (cuenta de acceso + plan).
-//El navegador no puede crear cuentas (el registro está cerrado), así que lo hace el Worker con la cuenta de servicio,
-//y solo para quien lleve un ID token válido Y esté en `super_admins`. Nunca se registran correos, ids ni tokens.
+//API del Worker. POST /clientes (crear cliente; solo super admin) y POST /sms/revisar (cancelar el SMS programado de hoy si
+//ya no queda ningún pago que venza; cualquier persona con sesión, solo sobre lo suyo). Nunca se registran correos, ids ni tokens.
 import { obtenerAccessToken } from "./google.js";
 import { verificarIdToken } from "./token.js";
 import { existeDocumento, crearDocumentoCliente } from "./firestore.js";
+import { revisarSmsProgramado } from "./sms.js";
 import { PLANES, limitesDePlan, nuevoVencimiento, DIAS_PRUEBA_MIN, DIAS_PRUEBA_MAX } from "../../src/functions/planes.js";
 
 const ORIGENES_POR_DEFECTO = ["https://finanzas.zfmanager.com", "https://react-lista-gastos-5d794.web.app", "https://react-lista-gastos-5d794.firebaseapp.com"];
@@ -51,7 +51,7 @@ export const validarNuevoCliente = (cuerpo) => {
 export const manejarSolicitud = async (request, env, { fetch: pedir = fetch, ahora = new Date() } = {}) => {
   const { pathname } = new URL(request.url);
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cabecerasCors(request, env) });
-  if (request.method !== "POST" || pathname !== "/clientes") return responder(request, env, 404, { error: "no-encontrado" });
+  if (request.method !== "POST" || !["/clientes", "/sms/revisar"].includes(pathname)) return responder(request, env, 404, { error: "no-encontrado" });
 
   //1) ¿Quién llama? ID token válido de Firebase Auth
   let quien;
@@ -63,6 +63,13 @@ export const manejarSolicitud = async (request, env, { fetch: pedir = fetch, aho
 
   const cuenta = JSON.parse(env.GOOGLE_SA_JSON);
   const accessToken = await obtenerAccessToken(cuenta, { fetch: pedir, ahoraSeg: Math.floor(ahora.getTime() / 1000) });
+
+  //POST /sms/revisar: el uid sale del ID token verificado, nunca del cuerpo
+  if (pathname === "/sms/revisar") {
+    const estado = await revisarSmsProgramado(env, accessToken, pedir, quien.uid, ahora);
+    console.log(JSON.stringify({ evento: "sms-revisado", estado }));
+    return responder(request, env, 200, { estado });
+  }
 
   //2) ¿Es super admin? La comprobación es contra Firestore (la fuente de verdad), no contra algo que mande el cliente
   if (!(await existeDocumento(env, accessToken, pedir, `super_admins/${quien.uid}`))) return responder(request, env, 403, { error: "sin-permiso" });

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, createVerify } from "node:crypto";
 import { firmarJWT } from "../src/google.js";
-import { ejecutar, MAX_ENVIOS } from "../src/recordatorios.js";
+import { ejecutar, MAX_ENVIOS, MAX_SMS } from "../src/recordatorios.js";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const SA = {
@@ -19,7 +19,7 @@ const docTok = (uid, id, extra = {}) => ({ document: { name: `projects/demo/data
 const docPerfil = (uid, extra = {}) => ({ found: { name: `projects/demo/databases/(default)/documents/usuarios/${uid}`, fields: campos({ zona: "America/Bogota", detalleEnAviso: false, ...extra }) } });
 
 //Servidor falso de Google: responde según la URL y guarda las llamadas
-const crearFetch = ({ recs = [], perfilesRes = [], tokens = [], clientes = [], admins = [], fcm = () => ({ ok: true }) }) => {
+const crearFetch = ({ recs = [], perfilesRes = [], tokens = [], clientes = [], admins = [], fcm = () => ({ ok: true }), labs = () => ({ code: "0" }) }) => {
   const llamadas = [];
   const pedir = async (url, init = {}) => {
     const cuerpo = init.body && typeof init.body === "string" ? JSON.parse(init.body) : init.body;
@@ -36,12 +36,21 @@ const crearFetch = ({ recs = [], perfilesRes = [], tokens = [], clientes = [], a
       const r = fcm(cuerpo.message);
       return r.ok ? json({ name: "x" }) : json({ error: { details: [{ errorCode: r.codigo }] } }, r.estado || 404);
     }
+    if (String(url).includes("api.labsmobile.com")) {
+      const r = labs(cuerpo, String(url));
+      return json(r, r.http || 200);
+    }
     throw new Error(`URL inesperada ${url}`);
   };
   return { pedir, llamadas };
 };
 const commitDe = (llamadas) => llamadas.find((l) => l.url.endsWith(":commit"))?.cuerpo.writes ?? [];
 const enviosDe = (llamadas) => llamadas.filter((l) => l.url.includes("fcm.googleapis.com"));
+const smsDe = (llamadas) => llamadas.filter((l) => l.url.includes("api.labsmobile.com"));
+const envSms = { ...env, LABS_MOBILE_USER: "yo@correo.co", LABS_MOBILE_TOKEN: "tk" };
+const docCli = (uid, extra = {}) => ({ document: { name: `projects/demo/databases/(default)/documents/clientes/${uid}`, fields: { ...campos({ correo: `${uid}@x.co`, nombre: "Ana Pérez", plan: "basico", estado: "activo", ...extra }), vence: { timestampValue: "2026-12-31T04:59:59.999Z" } } } });
+const conSms = { smsActivo: true, celular: "+573001234567" };
+const A_LAS = (hora) => new Date(`2026-11-10T${hora}:00Z`); //el pago de docRec vence el 10
 
 test("el JWT está bien formado y su firma RS256 verifica con la clave pública", async () => {
   const jwt = await firmarJWT(SA, 1700000000);
@@ -168,4 +177,82 @@ test(`tope de ${MAX_ENVIOS} envíos por ejecución (50 subrequests del plan Free
 test("un fallo de Firestore se propaga sin filtrar el cuerpo de la respuesta", async () => {
   const pedir = async (url) => String(url).includes("oauth2") ? { ok: true, json: async () => ({ access_token: "AT" }) } : { ok: false, status: 403, json: async () => ({ secreto: "x" }) };
   await assert.rejects(ejecutar(env, { fetch: pedir, ahora: AHORA }), (e) => e.message === "Firestore 403");
+});
+
+test("8:00: programa el SMS para las 8:30 (13:30 GMT) y todavía no manda el push del día", async () => {
+  const { pedir, llamadas } = crearFetch({ recs: [docRec("a", "ana")], perfilesRes: [docPerfil("ana", conSms)], clientes: [docCli("ana")], tokens: [docTok("ana", "t1")] });
+  const r = await ejecutar(envSms, { fetch: pedir, ahora: A_LAS("13:00") });
+  assert.deepEqual([r.sms, r.avisos], [1, 0]);
+  assert.equal(enviosDe(llamadas).length, 0);
+  const [sms] = smsDe(llamadas);
+  assert.equal(sms.url, "https://api.labsmobile.com/json/send");
+  assert.equal(sms.init.headers.Authorization, `Basic ${btoa("yo@correo.co:tk")}`);
+  assert.deepEqual(sms.cuerpo, {
+    message: "Hoy vence 1 gasto fijo en Finanzas. Registralo en finanzas.zfmanager.com/recurrentes",
+    tpoa: "AnaPerez",
+    recipient: [{ msisdn: "573001234567" }],
+    subid: "fana20261110",
+    label: "finanzas-recordatorio",
+    scheduled: "2026-11-10 13:30:00",
+  });
+  const marca = commitDe(llamadas).find((w) => w.updateMask?.fieldPaths[0] === "ultimoSms");
+  assert.equal(marca.update.fields.ultimoSms.stringValue, "2026-11-10|fana20261110");
+  assert.ok(marca.update.name.endsWith("clientes/ana"));
+});
+
+test("el día del pago el push se repite por turno (8:30 y 11:30) con hoy=1 y para cuando ya se avisó ese turno", async () => {
+  const base = { perfilesRes: [docPerfil("ana")], clientes: [docCli("ana")], tokens: [docTok("ana", "t1")] };
+  let f = crearFetch({ ...base, recs: [docRec("a", "ana")] });
+  await ejecutar(env, { fetch: f.pedir, ahora: A_LAS("13:30") });
+  assert.equal(enviosDe(f.llamadas)[0].cuerpo.message.data.hoy, "1");
+  assert.equal(commitDe(f.llamadas).find((w) => w.update?.fields.ultimoAviso).update.fields.ultimoAviso.stringValue, "2026-11-10:hoy:0");
+
+  f = crearFetch({ ...base, recs: [docRec("a", "ana", { ultimoAviso: "2026-11-10:hoy:0" })] });
+  await ejecutar(env, { fetch: f.pedir, ahora: A_LAS("16:30") });
+  assert.equal(commitDe(f.llamadas).find((w) => w.update?.fields.ultimoAviso).update.fields.ultimoAviso.stringValue, "2026-11-10:hoy:1");
+
+  f = crearFetch({ ...base, recs: [docRec("a", "ana", { ultimoAviso: "2026-11-10:hoy:1" })] });
+  const r = await ejecutar(env, { fetch: f.pedir, ahora: A_LAS("16:45") });
+  assert.equal(r.avisos, 0);
+  assert.equal(smsDe(f.llamadas).length, 0); //sin smsActivo no hay SMS
+});
+
+test("si el SMS de las 8:00 falló (code 35) no se marca, y a las 8:30 sale de inmediato", async () => {
+  const base = { recs: [docRec("a", "ana")], perfilesRes: [docPerfil("ana", conSms)], clientes: [docCli("ana")], tokens: [docTok("ana", "t1")] };
+  let f = crearFetch({ ...base, labs: () => ({ code: "35", message: "sin créditos" }) });
+  let r = await ejecutar(envSms, { fetch: f.pedir, ahora: A_LAS("13:00") });
+  assert.deepEqual([r.sms, r.smsFallidos], [0, 1]);
+  assert.equal(commitDe(f.llamadas).length, 0);
+
+  f = crearFetch(base);
+  r = await ejecutar(envSms, { fetch: f.pedir, ahora: A_LAS("13:30") });
+  assert.equal(r.sms, 1);
+  assert.equal(smsDe(f.llamadas)[0].cuerpo.scheduled, undefined);
+});
+
+test("no hay SMS sin activar, con celular inválido, con plan vencido, ya enviado hoy o sin credenciales", async () => {
+  const casos = [
+    [env, { perfil: conSms, cliente: {} }],
+    [envSms, { perfil: { smsActivo: false, celular: "+573001234567" }, cliente: {} }],
+    [envSms, { perfil: { smsActivo: true, celular: "3001234567" }, cliente: {} }],
+    [envSms, { perfil: conSms, cliente: { estado: "suspendido" } }],
+    [envSms, { perfil: conSms, cliente: { ultimoSms: "2026-11-10|cancelado" } }],
+  ];
+  for (const [entorno, { perfil, cliente }] of casos) {
+    const { pedir, llamadas } = crearFetch({ recs: [docRec("a", "ana")], perfilesRes: [docPerfil("ana", perfil)], clientes: [docCli("ana", cliente)], tokens: [docTok("ana", "t1")] });
+    await ejecutar(entorno, { fetch: pedir, ahora: A_LAS("13:00") });
+    assert.equal(smsDe(llamadas).length, 0);
+  }
+});
+
+test(`tope de ${MAX_SMS} SMS por ejecución`, async () => {
+  const uids = Array.from({ length: MAX_SMS + 2 }, (_, i) => `p${i}`);
+  const { pedir, llamadas } = crearFetch({
+    recs: uids.map((u) => docRec(`r${u}`, u)),
+    perfilesRes: uids.map((u) => docPerfil(u, conSms)),
+    clientes: uids.map((u) => docCli(u)),
+  });
+  const r = await ejecutar(envSms, { fetch: pedir, ahora: A_LAS("13:00") });
+  assert.equal(smsDe(llamadas).length, MAX_SMS);
+  assert.deepEqual([r.sms, r.smsOmitidos], [MAX_SMS, 2]);
 });

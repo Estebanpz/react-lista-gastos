@@ -8,8 +8,10 @@
   // pertenencia a super_admins; el resto de rutas devuelve 404. El cron sigue funcionando igual.
   "workers_dev": true,
   "preview_urls": false,
-  // 13:00 UTC = 08:00 en Bogotá (Colombia no tiene horario de verano). El cron de Cloudflare siempre es UTC.
-  "triggers": { "crons": ["0 13 * * *"] },
+  // El cron de Cloudflare siempre es UTC; Colombia es UTC-5 sin horario de verano.
+  // 13:00 UTC = 8:00 (avisos de 3 días, planes y programación del SMS de las 8:30).
+  // 13:30, 16:30, 19:30 y 22:30 UTC = 8:30, 11:30, 14:30 y 17:30: push del día del pago por turnos (src/functions/recurrencias.js).
+  "triggers": { "crons": ["0 13 * * *", "30 13,16,19,22 * * *"] },
   // Logs y trazas de todas las ejecuciones (es una al día). Los logs solo llevan conteos.
   "observability": {
     "enabled": true,
@@ -18,6 +20,6 @@
   },
   // No secreto. La clave de la cuenta de servicio es el secreto GOOGLE_SA_JSON (wrangler secret put)
   "vars": { "GCP_PROJECT_ID": "react-lista-gastos-5d794" },
-  // wrangler avisa si falta el secreto al desplegar o en desarrollo
+  // wrangler avisa si falta el secreto al desplegar o en desarrollo. Opcionales: LABS_MOBILE_USER y LABS_MOBILE_TOKEN (SMS); sin ellos no se envían SMS
   "secrets": { "required": ["GOOGLE_SA_JSON"] }
 }

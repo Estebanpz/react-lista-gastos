@@ -103,3 +103,22 @@ export const confirmar = (env, token, pedir, { avisos, tokensABorrar }) => {
   ];
   return writes.length ? llamar(env, token, pedir, `${raiz(env)}:commit`, { writes }) : null;
 };
+
+//Lee un documento por su ruta relativa («clientes/uid»); null si no existe
+export const leerDocumentoPorRuta = async (env, token, pedir, ruta) => {
+  const respuesta = await pedir(`${urlBase(env)}/v1/${raiz(env)}/${ruta}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (respuesta.status === 404) return null;
+  if (!respuesta.ok) throw new Error(`Firestore ${respuesta.status}`);
+  return leerDocumento(await respuesta.json());
+};
+
+//Pagos activos de una persona que vencen en `fecha` (AAAA-MM-DD). Solo igualdades: no necesita índice compuesto.
+export const pagosActivosDelDia = (env, token, pedir, uid, fecha) => consulta(env, token, pedir, {
+  from: [{ collectionId: "recurrentes" }],
+  where: { compositeFilter: { op: "AND", filters: [
+    { fieldFilter: { field: { fieldPath: "uidUsuario" }, op: "EQUAL", value: { stringValue: uid } } },
+    { fieldFilter: { field: { fieldPath: "activo" }, op: "EQUAL", value: { booleanValue: true } } },
+    { fieldFilter: { field: { fieldPath: "proximaFecha" }, op: "EQUAL", value: { stringValue: fecha } } },
+  ] } },
+  limit: 5,
+});
