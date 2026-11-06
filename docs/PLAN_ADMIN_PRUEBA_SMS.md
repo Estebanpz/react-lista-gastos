@@ -1813,6 +1813,87 @@ Commit (`git add` de los 11 archivos de 5A y 5B): `App: celular para SMS, aviso 
 
 ---
 
+## Fase 5R · Responsive del panel admin (corrección aprobada tras revisar capturas)
+
+Capturas reales (6 nov 2026): a 1024 px la tabla se desborda a la derecha y el correo queda una palabra por línea (la tabla
+aparece desde 60rem, pero con la barra lateral no cabe hasta 75rem); a 1280–1440 px cada barra repite «Gastos de <correo>» en
+3–4 líneas y «Vence» se parte en 3; a 320 px el paginador parte «Más recientes» y «Página 1 de 2». 390 y 768 px están bien.
+
+**Agente principal, sin agentes.** Archivos: `src/components/admin/elementos.jsx`, `src/components/paginas/PaginaAdmin.jsx`,
+`e2e/4-admin.spec.js` (la prueba nueva de 5R.4 va con la Fase 6; aquí solo código).
+
+**5R.1 `MedidorPartido` sin título visible en la tabla.** En `elementos.jsx`:
+- La firma pasa a `export const MedidorPartido = ({ etiqueta, variables, fijos, limite, sinTitulo = false }) => {`.
+- En el primer `<div style={{ display: "flex", justifyContent: "space-between", … }}>` del componente cambia `justifyContent: "space-between"` por `justifyContent: sinTitulo ? "flex-end" : "space-between"`.
+- La línea `<span style={{ fontWeight: 600, color: theme.tinta }}>{etiqueta}</span>` (la de `MedidorPartido`, no la de `Medidor`) pasa a `{!sinTitulo && <span style={{ fontWeight: 600, color: theme.tinta }}>{etiqueta}</span>}`.
+(`aria-label={etiqueta}` no cambia: el lector de pantalla sigue oyendo «Gastos de <cliente>».)
+
+**5R.2 `Paginador` en dos filas.** Reemplaza el `Paginador` completo por:
+
+```jsx
+//Paginación de las listas de la ficha: número de página arriba y «Más recientes» / «Anteriores» debajo, en dos columnas
+//iguales (así cabe en 320 px). Con una sola página no se muestra.
+export const Paginador = ({ etiqueta, pagina, paginas, alCambiar }) =>
+  paginas <= 1 ? null : (
+    <nav aria-label={etiqueta} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem 0.75rem", marginTop: "0.75rem" }}>
+      <span aria-live="polite" style={{ gridColumn: "1 / -1", textAlign: "center", fontSize: "0.875rem", color: theme.tintaSuave, fontVariantNumeric: "tabular-nums" }}>
+        Página {pagina} de {paginas}
+      </span>
+      <BotonPagina type="button" onClick={() => alCambiar(pagina - 1)} disabled={pagina <= 1}>
+        Más recientes
+      </BotonPagina>
+      <BotonPagina type="button" onClick={() => alCambiar(pagina + 1)} disabled={pagina >= paginas}>
+        Anteriores
+      </BotonPagina>
+    </nav>
+  );
+```
+
+y en el styled `BotonPagina` cambia `padding: 0 0.9rem;` por `padding: 0 0.6rem;` y añade `white-space: nowrap;` debajo.
+
+**5R.3 `PaginaAdmin.jsx`.**
+- `const ancha = useMediaQuery(theme.pantallaAncha);` → `const ancha = useMediaQuery(theme.dosColumnas); //tabla solo si cabe junto a la barra lateral (75rem); si no, tarjetas`
+- En la tabla, la celda `<td>{fechaCorta(f.vence)}</td>` → `<td style={{ whiteSpace: "nowrap" }}>{fechaCorta(f.vence)}</td>`.
+- En la celda de la barra de la tabla añade la prop `sinTitulo` al `<MedidorPartido etiqueta={`Gastos de ${f.nombre || f.correo}`} … />` (la de la tarjeta móvil no cambia).
+
+**5R.4 Prueba (va en la Fase 6, en `e2e/4-admin.spec.js`, antes del `});` final):**
+
+```js
+  test("el panel no se desborda: tarjetas hasta 75rem, tabla después, paginador en 320 px", async ({ page }) => {
+    const correo = correoUnico("cliente-con-un-correo-bastante-largo");
+    const uid = await crearCuenta(correo, { plan: "basico", diasVence: 10 });
+    for (let i = 0; i < 6; i++) {
+      await sembrarDocumento(`pagosPlan/r-${uid}-${i}`, { uidCliente: uid, correo, plan: "basico", monto: 60000, referencia: `Pago ${i + 1}`, fechaPago: new Date(Date.UTC(2026, i, 5)), venceDespues: new Date(Date.UTC(2026, i + 1, 5)), creado: new Date() });
+    }
+    await registrarUsuario(page, correoUnico("admin5"), { admin: true });
+    const sinDesborde = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+    for (const [ancho, tabla] of [[320, false], [768, false], [1024, false], [1280, true]]) {
+      await page.setViewportSize({ width: ancho, height: 800 });
+      await page.waitForTimeout(300);
+      expect(await sinDesborde()).toBe(true);
+      await expect(page.getByRole("table")).toHaveCount(tabla ? 1 : 0);
+    }
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.getByLabel("Buscar cliente por correo o nombre").fill(correo);
+    await page.getByRole("button", { name: correo }).first().click();
+    const paginas = page.getByRole("dialog").getByRole("navigation", { name: "Páginas de pagos" });
+    await paginas.scrollIntoViewIfNeeded();
+    expect(await sinDesborde()).toBe(true);
+    const alto = async (nombre) => (await paginas.getByRole("button", { name: nombre }).boundingBox()).height;
+    expect(await alto("Más recientes")).toBeLessThan(56); //una sola línea (botón de 44 px)
+    expect(await alto("Anteriores")).toBeLessThan(56);
+  });
+```
+
+Con esta prueba el total E2E de la Fase 6 pasa de 46 a **47**.
+
+**5R.5 Comprobar y cerrar.** `CI=true npm test -- --watchAll=false` (sin cambios en las cifras) y `CI=true npm run build`.
+Commit (`git add src/components/admin/elementos.jsx src/components/paginas/PaginaAdmin.jsx`): `Panel admin: responsive de la tabla, la barra y el paginador`
+
+**Regla para la Fase 5 y la 6 (responsive):** toda pantalla nueva o tocada debe verse sin desborde horizontal a 320, 390, 768,
+1024 y 1440 px. La tarjeta «Recordatorio por SMS» se comprueba igual en la Fase 6 (prueba de 6.3: añade al final
+`for (const ancho of [320, 768, 1440]) { await page.setViewportSize({ width: ancho, height: 800 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); }`).
+
 ## Fase 6 · E2E, documentación y revisión
 
 **6.1 `e2e/utilidades.js`.** En `documentosEnEmulador` cambia `v.stringValue ?? v.integerValue ?? v.doubleValue` por
@@ -1882,11 +1963,11 @@ test("el cliente guarda su celular y enciende el SMS del día del pago", async (
 });
 ```
 
-**6.4 Correr.** `npm run e2e` (antes 44; ahora **46**, 0 fallos). Si falla algo que no es de estas pruebas, para y di cuál.
+**6.4 Correr.** `npm run e2e` (antes 44; ahora **47**, 0 fallos). Si falla algo que no es de estas pruebas, para y di cuál.
 
 **6.5 `CLAUDE.md`.** Actualiza (textos exactos):
 
-- En «Comandos», `44 pruebas:` → `46 pruebas:` y `101 pruebas de firestore.rules` → `105 pruebas de firestore.rules`.
+- En «Comandos», `44 pruebas:` → `47 pruebas:` y `101 pruebas de firestore.rules` → `105 pruebas de firestore.rules`.
 - En «Pagos recurrentes y avisos», añade al final del párrafo: `El día del pago el push se repite a las 8:30, 11:30, 14:30 y 17:30 (turnos de turnoDelDia; clave «fecha:hoy:N») hasta que se registre, omita, pause o borre. SMS: ver «SMS (LabsMobile)».`
 - En «Planes, clientes y límites», añade: `uso.fijos cuenta los pagos de gastos fijos del mes (barra partida en /admin con MedidorPartido); la ficha del cliente pagina pagos (5) y uso por mes (6) con paginar(). Días de prueba: campo al crear/pasar a Prueba (1–90, diasDePrueba) y «Dar días de prueba» (darDiasPrueba, asiento de $0).`
 
