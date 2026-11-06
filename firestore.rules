@@ -188,7 +188,7 @@ service cloud.firestore {
     }
 
     function clienteValido(d) {
-      return d.keys().hasOnly(['correo', 'nombre', 'plan', 'estado', 'vence', 'limites', 'notas', 'creado', 'actualizado', 'ultimoAvisoPlan'])
+      return d.keys().hasOnly(['correo', 'nombre', 'plan', 'estado', 'vence', 'limites', 'notas', 'creado', 'actualizado', 'ultimoAvisoPlan', 'ultimoSms'])
         && d.keys().hasAll(['correo', 'plan', 'estado', 'vence', 'limites', 'creado', 'actualizado'])
         && d.correo is string && d.correo.size() >= 3 && d.correo.size() <= 120
         && (!('nombre' in d) || (d.nombre is string && d.nombre.size() <= 60))
@@ -199,6 +199,8 @@ service cloud.firestore {
         && (!('notas' in d) || (d.notas is string && d.notas.size() <= 200))
         // lo escribe el Worker de avisos (cuenta de servicio); aquí solo se permite que exista
         && (!('ultimoAvisoPlan' in d) || d.ultimoAvisoPlan is string)
+        // `ultimoSms` («AAAA-MM-DD|subid» o «AAAA-MM-DD|cancelado») lo escribe solo el Worker; aquí solo se permite que exista
+        && (!('ultimoSms' in d) || d.ultimoSms is string)
         && d.creado is timestamp
         && d.actualizado == request.time;
     }
@@ -212,22 +214,32 @@ service cloud.firestore {
     }
 
     // ---- Uso mensual (contador de gastos). El id es «uid_año_mes». El cliente solo suma +1 ----
+    // `fijos` (opcional) cuenta cuántos de los gastos del mes son pagos de gastos fijos (id «rec_…»). Solo sube de 1 en 1 junto
+    // con `gastos` y nunca pasa de `gastos`. Lo usa el panel del super admin para partir la barra del mes (solo conteos).
+    function fijosValidos(nuevo, antes) {
+      return nuevo.get('fijos', 0) is int
+        && (nuevo.get('fijos', 0) == antes || nuevo.get('fijos', 0) == antes + 1)
+        && nuevo.get('fijos', 0) <= nuevo.gastos;
+    }
+
     match /uso/{usoId} {
       // Se decide por el id (uid_año_mes), no por el contenido: el documento puede no existir todavía y la app lo escucha
       allow read: if esAdmin() || (logueado() && usoId.matches(request.auth.uid + '_[0-9]+_[0-9]+'));
       allow create: if esDueno(request.resource.data.uidUsuario)
                     && usoId == claveUso(request.auth.uid)
-                    && request.resource.data.keys().hasOnly(['gastos', 'uidUsuario'])
+                    && request.resource.data.keys().hasOnly(['gastos', 'uidUsuario', 'fijos'])
                     && request.resource.data.gastos == 1
                     && planVigente(request.auth.uid)
-                    && get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.limites.gastosMes >= 1;
+                    && get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.limites.gastosMes >= 1
+                    && fijosValidos(request.resource.data, 0);
       allow update: if esDueno(resource.data.uidUsuario)
                     && usoId == claveUso(request.auth.uid)
-                    && request.resource.data.keys().hasOnly(['gastos', 'uidUsuario'])
+                    && request.resource.data.keys().hasOnly(['gastos', 'uidUsuario', 'fijos'])
                     && request.resource.data.uidUsuario == resource.data.uidUsuario
                     && request.resource.data.gastos == resource.data.gastos + 1
                     && planVigente(request.auth.uid)
-                    && request.resource.data.gastos <= get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.limites.gastosMes;
+                    && request.resource.data.gastos <= get(/databases/$(database)/documents/clientes/$(request.auth.uid)).data.limites.gastosMes
+                    && fijosValidos(request.resource.data, resource.data.get('fijos', 0));
     }
 
     // ---- Historial de pagos del plan (lo registra el super admin; cada cliente ve los suyos) ----
@@ -250,12 +262,16 @@ service cloud.firestore {
     match /usuarios/{uid} {
       allow read: if esDueno(uid);
       allow create, update: if esDueno(uid)
-                            && request.resource.data.keys().hasOnly(['zona', 'detalleEnAviso', 'actualizado'])
+                            && request.resource.data.keys().hasOnly(['zona', 'detalleEnAviso', 'actualizado', 'celular', 'smsActivo'])
                             && request.resource.data.keys().hasAll(['zona', 'detalleEnAviso', 'actualizado'])
                             && request.resource.data.zona is string
                             && request.resource.data.zona.matches('^[A-Za-z_]+(/[A-Za-z0-9_+-]+){0,2}$')
                             && request.resource.data.zona.size() <= 64
                             && request.resource.data.detalleEnAviso is bool
+                            // Celular de Colombia para el SMS del día del pago (lo escribe la persona; opt-in con smsActivo)
+                            && (!('celular' in request.resource.data) || (request.resource.data.celular is string
+                                && request.resource.data.celular.matches('^[+]573[0-9]{9}$')))
+                            && (!('smsActivo' in request.resource.data) || request.resource.data.smsActivo is bool)
                             && request.resource.data.actualizado == request.time;
     }
 

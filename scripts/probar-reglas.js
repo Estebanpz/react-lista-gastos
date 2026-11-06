@@ -202,7 +202,7 @@ const caso = async (nombre, fn) => {
     const { writeBatch } = require("firebase/firestore");
     const lote = writeBatch(ana);
     lote.set(doc(ana, "gastos/rec_r2_2026-11-10"), gasto("ana", { descripcion: "Nómina", categoria: "nomina" }));
-    lote.set(doc(ana, "uso", claveUso("ana")), { gastos: increment(1), uidUsuario: "ana" }, { merge: true });
+    lote.set(doc(ana, "uso", claveUso("ana")), { gastos: increment(1), fijos: increment(1), uidUsuario: "ana" }, { merge: true });
     lote.update(doc(ana, "recurrentes/ana_2"), { proximaFecha: "2026-11-17" });
     await assertSucceeds(lote.commit());
   });
@@ -211,6 +211,13 @@ const caso = async (nombre, fn) => {
   const perfil = (extra = {}) => ({ zona: "America/Bogota", detalleEnAviso: false, actualizado: serverTimestamp(), ...extra });
   const tok = (extra = {}) => ({ token: TOKEN, plataforma: "android", actualizado: serverTimestamp(), ...extra });
   await caso("dueño guarda su perfil", () => assertSucceeds(setDoc(doc(ana, "usuarios/ana"), perfil())));
+  await caso("dueño guarda celular y SMS; NO un celular inválido ni smsActivo no booleano", async () => {
+    await assertSucceeds(setDoc(doc(ana, "usuarios/ana"), perfil({ celular: "+573001234567", smsActivo: true })));
+    await assertFails(setDoc(doc(ana, "usuarios/ana"), perfil({ celular: "3001234567" })));
+    await assertFails(setDoc(doc(ana, "usuarios/ana"), perfil({ celular: "+5730012345" })));
+    await assertFails(setDoc(doc(ana, "usuarios/ana"), perfil({ smsActivo: "si" })));
+    await assertFails(setDoc(doc(beto, "usuarios/ana"), perfil({ celular: "+573001234567" })));
+  });
   await caso("NO perfil ajeno, con campos extra, zona inválida o fecha falsa", async () => {
     await assertFails(setDoc(doc(beto, "usuarios/ana"), perfil()));
     await assertFails(setDoc(doc(ana, "usuarios/ana"), perfil({ admin: true })));
@@ -283,11 +290,29 @@ const caso = async (nombre, fn) => {
     await assertSucceeds(getDoc(doc(ana, "uso", "ana_2030_1")));
     await assertFails(getDoc(doc(beto, "uso", "ana_2030_1")));
   });
+  await caso("el contador de fijos sube de 1 en 1 junto con el de gastos", async () => {
+    const lote = writeBatch(ana);
+    lote.set(doc(ana, "gastos/rec_f1_2026-11-10"), gasto("ana"));
+    lote.set(doc(ana, "uso", claveUso("ana")), { gastos: increment(1), fijos: increment(1), uidUsuario: "ana" }, { merge: true });
+    await assertSucceeds(lote.commit());
+  });
+  await caso("NO saltar el contador de fijos ni pasarlo por encima de gastos", async () => {
+    const lote = writeBatch(ana);
+    lote.set(doc(ana, "gastos/rec_f2_2026-11-10"), gasto("ana"));
+    lote.set(doc(ana, "uso", claveUso("ana")), { gastos: increment(1), fijos: increment(2), uidUsuario: "ana" }, { merge: true });
+    await assertFails(lote.commit());
+    await assertFails(setDoc(doc(ana, "uso", claveUso("ana")), { gastos: 1, fijos: 2, uidUsuario: "ana" }));
+  });
 
   console.log("Planes de clientes y super admin:");
   await caso("el cliente lee su plan; no el de otro", async () => {
     await assertSucceeds(getDoc(doc(ana, "clientes/ana")));
     await assertFails(getDoc(doc(ana, "clientes/beto")));
+  });
+  await caso("un plan con ultimoSms (lo escribe el Worker) se puede seguir editando; ultimoSms debe ser texto", async () => {
+    await env.withSecurityRulesDisabled(async (c) => updateDoc(doc(c.firestore(), "clientes/ana"), { ultimoSms: "2026-11-10|fana20261110" }));
+    await assertSucceeds(updateDoc(doc(root, "clientes/ana"), { notas: "con SMS", actualizado: serverTimestamp() }));
+    await assertFails(updateDoc(doc(root, "clientes/ana"), { ultimoSms: 5, actualizado: serverTimestamp() }));
   });
   await caso("el cliente NO puede cambiar su plan, su vencimiento ni sus límites", async () => {
     await assertFails(updateDoc(doc(ana, "clientes/ana"), { plan: "negocio" }));
