@@ -136,7 +136,7 @@ const documentosEnEmulador = async (coleccion) => {
     { headers: { Authorization: "Bearer owner" } }
   );
   const json = await respuesta.json();
-  return (json.documents || []).map((d) => ({ id: d.name.split("/").pop(), ...Object.fromEntries(Object.entries(d.fields).map(([k, v]) => [k, v.stringValue ?? v.integerValue ?? v.doubleValue])) }));
+  return (json.documents || []).map((d) => ({ id: d.name.split("/").pop(), ...Object.fromEntries(Object.entries(d.fields).map(([k, v]) => [k, v.stringValue ?? v.integerValue ?? v.doubleValue ?? v.booleanValue])) }));
 };
 
 const gastosEnEmulador = async () => (await documentosEnEmulador("gastos")).map((d) => d.descripcion);

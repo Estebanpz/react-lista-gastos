@@ -1,5 +1,5 @@
 const { test, expect } = require("@playwright/test");
-const { correoUnico, crearCuenta, registrarUsuario, documentosEnEmulador } = require("./utilidades");
+const { correoUnico, crearCuenta, registrarUsuario, documentosEnEmulador, sembrarDocumento } = require("./utilidades");
 
 test.describe("Panel de super admin", () => {
   test("una persona sin permiso de admin no ve el enlace y /admin la devuelve al inicio", async ({ page }) => {
@@ -109,5 +109,64 @@ test.describe("Panel de super admin", () => {
     //al volver a abrir (el detalle del cliente sigue detrás), los cupos a medida aparecen llenos
     await page.getByRole("dialog").getByRole("button", { name: "Cambiar plan o editar" }).click();
     await expect(page.getByRole("dialog", { name: "Cambiar plan" }).getByLabel("Gastos fijos (pagos)")).toHaveValue("12");
+  });
+
+  test("ficha del cliente: pagos paginados, uso por mes, barra partida y «Dar días de prueba»", async ({ page }) => {
+    const correo = correoUnico("historial");
+    const uid = await crearCuenta(correo, { plan: "basico", diasVence: 10 });
+    for (let i = 0; i < 7; i++) {
+      await sembrarDocumento(`pagosPlan/e2e-${uid}-${i}`, { uidCliente: uid, correo, plan: "basico", monto: 60000, referencia: `Pago ${i + 1}`, fechaPago: new Date(Date.UTC(2026, i, 5)), venceDespues: new Date(Date.UTC(2026, i + 1, 5)), creado: new Date() });
+    }
+    const local = new Date(Date.now() - 5 * 3600000);
+    await sembrarDocumento(`uso/${uid}_${local.getUTCFullYear()}_${local.getUTCMonth() + 1}`, { gastos: 10, fijos: 3, uidUsuario: uid });
+    await sembrarDocumento(`uso/${uid}_2025_12`, { gastos: 4, uidUsuario: uid });
+    await registrarUsuario(page, correoUnico("admin4"), { admin: true });
+
+    await page.getByLabel("Buscar cliente por correo o nombre").fill(correo);
+    await page.getByRole("button", { name: correo }).click();
+    const detalle = page.getByRole("dialog");
+    await expect(detalle.getByRole("meter", { name: "Gastos del mes" })).toHaveAttribute("aria-valuetext", "10 de 30: 7 variables y 3 fijos");
+    await expect(detalle.getByText("Diciembre de 2025")).toBeVisible();
+
+    //5 por página, más recientes primero: el pago 7 está en la página 1 y el 2 en la 2
+    await expect(detalle.getByText(/^Pago 7 ·/)).toBeVisible();
+    await expect(detalle.getByText(/^Pago 2 ·/)).toHaveCount(0);
+    const paginas = detalle.getByRole("navigation", { name: "Páginas de pagos" });
+    await paginas.getByRole("button", { name: "Anteriores" }).click();
+    await expect(paginas.getByText("Página 2 de 2")).toBeVisible();
+    await expect(detalle.getByText(/^Pago 2 ·/)).toBeVisible();
+
+    await detalle.getByRole("button", { name: "Dar días de prueba" }).click();
+    const hoja = page.getByRole("dialog", { name: "Dar días de prueba" });
+    await hoja.getByLabel("Días").fill("15");
+    await hoja.getByRole("button", { name: "Dar días" }).click();
+    await expect(hoja).toBeHidden();
+    const pagos = await documentosEnEmulador("pagosPlan");
+    expect(pagos.find((p) => p.correo === correo && p.referencia === "Días de prueba (15)")).toMatchObject({ monto: "0" });
+  });
+
+  test("el panel no se desborda: tarjetas hasta 75rem, tabla después, paginador en 320 px", async ({ page }) => {
+    const correo = correoUnico("cliente-con-un-correo-bastante-largo");
+    const uid = await crearCuenta(correo, { plan: "basico", diasVence: 10 });
+    for (let i = 0; i < 6; i++) {
+      await sembrarDocumento(`pagosPlan/r-${uid}-${i}`, { uidCliente: uid, correo, plan: "basico", monto: 60000, referencia: `Pago ${i + 1}`, fechaPago: new Date(Date.UTC(2026, i, 5)), venceDespues: new Date(Date.UTC(2026, i + 1, 5)), creado: new Date() });
+    }
+    await registrarUsuario(page, correoUnico("admin5"), { admin: true });
+    const sinDesborde = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+    for (const [ancho, tabla] of [[320, false], [768, false], [1024, false], [1280, true]]) {
+      await page.setViewportSize({ width: ancho, height: 800 });
+      await page.waitForTimeout(300);
+      expect(await sinDesborde()).toBe(true);
+      await expect(page.getByRole("table")).toHaveCount(tabla ? 1 : 0);
+    }
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.getByLabel("Buscar cliente por correo o nombre").fill(correo);
+    await page.getByRole("button", { name: correo }).first().click();
+    const paginas = page.getByRole("dialog").getByRole("navigation", { name: "Páginas de pagos" });
+    await paginas.scrollIntoViewIfNeeded();
+    expect(await sinDesborde()).toBe(true);
+    const alto = async (nombre) => (await paginas.getByRole("button", { name: nombre }).boundingBox()).height;
+    expect(await alto("Más recientes")).toBeLessThan(56); //una sola línea (botón de 44 px)
+    expect(await alto("Anteriores")).toBeLessThan(56);
   });
 });

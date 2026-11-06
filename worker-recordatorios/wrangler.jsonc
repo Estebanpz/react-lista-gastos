@@ -3,7 +3,7 @@
   "name": "recordatorios-gastos",
   "main": "src/index.js",
   // Actualizar a la fecha del día al desplegar (skill workers-best-practices) y volver a correr las pruebas
-  "compatibility_date": "2026-10-05",
+  "compatibility_date": "2026-11-06",
   // URL workers.dev activada para la API del panel de super admin (POST /clientes). Se protege con el ID token de Firebase +
   // pertenencia a super_admins; el resto de rutas devuelve 404. El cron sigue funcionando igual.
   "workers_dev": true,
