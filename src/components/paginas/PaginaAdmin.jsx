@@ -269,7 +269,7 @@ const GRUPOS = [
 
 const PaginaAdmin = () => {
   const { cargando, esAdmin } = useCliente();
-  const ancha = useMediaQuery(theme.pantallaAncha);
+  const ancha = useMediaQuery(theme.dosColumnas); //tabla solo si cabe junto a la barra lateral (75rem); si no, tarjetas
   const { clientes, usos, fijos, historial, error } = useClientesAdmin(esAdmin);
   const [ahora, cambiarAhora] = useState(() => Date.now());
   const [filtro, cambiarFiltro] = useState(null);
@@ -374,8 +374,8 @@ const PaginaAdmin = () => {
                 </td>
                 <td>{PLANES[f.plan].nombre}</td>
                 <td><PastillaEstado cliente={f} ahora={ahora} /></td>
-                <td>{fechaCorta(f.vence)}</td>
-                <td><MedidorPartido etiqueta={`Gastos de ${f.nombre || f.correo}`} variables={Math.max(0, (usos[f.uid] || 0) - (fijos[f.uid] || 0))} fijos={fijos[f.uid] || 0} limite={f.limites.gastosMes} /></td>
+                <td style={{ whiteSpace: "nowrap" }}>{fechaCorta(f.vence)}</td>
+                <td><MedidorPartido etiqueta={`Gastos de ${f.nombre || f.correo}`} variables={Math.max(0, (usos[f.uid] || 0) - (fijos[f.uid] || 0))} fijos={fijos[f.uid] || 0} limite={f.limites.gastosMes} sinTitulo /></td>
               </tr>
             ))}
           </tbody>
