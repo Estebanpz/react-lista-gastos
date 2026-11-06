@@ -9,18 +9,19 @@ const MENSAJES = {
   "correo-invalido": "Escribe un correo válido.",
   "sin-permiso": "Tu cuenta no está registrada como super admin.",
   "no-autenticado": "Tu sesión caducó. Vuelve a iniciar sesión.",
+  "dias-invalidos": "Los días de prueba deben ser un número entero entre 1 y 90.",
 };
 
 //Pide al Worker crear la cuenta de acceso y el plan en un solo paso. Devuelve {uid, enlace, correoEnviado}.
 //`enlace` permite que la persona cree su contraseña; también se le intenta enviar por correo (Firebase).
-export const crearClienteConAcceso = async ({ correo, nombre, plan, notas }) => {
+export const crearClienteConAcceso = async ({ correo, nombre, plan, notas, dias }) => {
   const token = await auth.currentUser.getIdToken();
   let respuesta;
   try {
     respuesta = await fetch(`${urlApiClientes()}/clientes`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ correo, nombre, plan, notas }),
+      body: JSON.stringify({ correo, nombre, plan, notas, ...(dias ? { dias } : {}) }),
     });
   } catch (e) {
     throw new Error("No hay conexión con el servidor. Inténtalo de nuevo.");

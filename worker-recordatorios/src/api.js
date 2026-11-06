@@ -4,7 +4,7 @@
 import { obtenerAccessToken } from "./google.js";
 import { verificarIdToken } from "./token.js";
 import { existeDocumento, crearDocumentoCliente } from "./firestore.js";
-import { PLANES, limitesDePlan, nuevoVencimiento } from "../../src/functions/planes.js";
+import { PLANES, limitesDePlan, nuevoVencimiento, DIAS_PRUEBA_MIN, DIAS_PRUEBA_MAX } from "../../src/functions/planes.js";
 
 const ORIGENES_POR_DEFECTO = ["https://finanzas.zfmanager.com", "https://react-lista-gastos-5d794.web.app", "https://react-lista-gastos-5d794.firebaseapp.com"];
 const origenesPermitidos = (env) => (env.ORIGENES_PERMITIDOS ? env.ORIGENES_PERMITIDOS.split(",").map((o) => o.trim()) : ORIGENES_POR_DEFECTO);
@@ -39,7 +39,13 @@ export const validarNuevoCliente = (cuerpo) => {
   const nombre = typeof cuerpo.nombre === "string" ? cuerpo.nombre.trim() : "";
   const notas = typeof cuerpo.notas === "string" ? cuerpo.notas.trim() : "";
   if (nombre.length > 60 || notas.length > 200) return { error: "texto-muy-largo" };
-  return { datos: { correo, plan: cuerpo.plan, nombre, notas } };
+  //Días de prueba (solo con plan Prueba): entero de 1 a 90. Sin el campo, los del plan (30).
+  let dias;
+  if (cuerpo.dias !== undefined && cuerpo.dias !== null) {
+    if (cuerpo.plan !== "prueba" || !Number.isInteger(cuerpo.dias) || cuerpo.dias < DIAS_PRUEBA_MIN || cuerpo.dias > DIAS_PRUEBA_MAX) return { error: "dias-invalidos" };
+    dias = cuerpo.dias;
+  }
+  return { datos: { correo, plan: cuerpo.plan, nombre, notas, ...(dias ? { dias } : {}) } };
 };
 
 export const manejarSolicitud = async (request, env, { fetch: pedir = fetch, ahora = new Date() } = {}) => {
@@ -85,7 +91,7 @@ export const manejarSolicitud = async (request, env, { fetch: pedir = fetch, aho
 
   //4) Documento del plan (mismo formato que valida firestore.rules)
   const plan = PLANES[datos.plan];
-  const vence = new Date(nuevoVencimiento(null, plan.dias, ahora.getTime())).toISOString();
+  const vence = new Date(nuevoVencimiento(null, datos.dias || plan.dias, ahora.getTime())).toISOString();
   await crearDocumentoCliente(env, accessToken, pedir, uid, {
     correo: datos.correo, nombre: datos.nombre, notas: datos.notas, plan: datos.plan, estado: datos.plan === "prueba" ? "prueba" : "activo",
     vence, limites: limitesDePlan(datos.plan), ahora: ahora.toISOString(),

@@ -62,3 +62,25 @@ export const registrarPagoPlan = (cliente, { plan, monto, referencia, dias, fech
   lote.update(doc(db, "clientes", cliente.uid), cambios);
   return lote.commit();
 };
+
+//Días de prueba (cortesía) sin cobro: asiento de $0 en `pagosPlan` + vencimiento extendido, en un lote. No cambia plan, límites
+//ni estado (un suspendido sigue suspendido). Nunca acorta: nuevoVencimiento parte del mayor entre el vencimiento actual y hoy.
+export const darDiasPrueba = (cliente, dias, ahora = Date.now()) => {
+  const venceAntes = cliente.vence && cliente.vence.toMillis ? cliente.vence.toMillis() : Number(cliente.vence) || 0;
+  const venceDespues = nuevoVencimiento(venceAntes, dias, ahora);
+  const lote = writeBatch(db);
+  const asiento = {
+    uidCliente: cliente.uid,
+    correo: cliente.correo,
+    plan: cliente.plan,
+    monto: 0,
+    referencia: `Días de prueba (${dias})`,
+    fechaPago: aTimestamp(ahora),
+    venceDespues: aTimestamp(venceDespues),
+    creado: serverTimestamp(),
+  };
+  if (venceAntes) asiento.venceAntes = aTimestamp(venceAntes);
+  lote.set(doc(collection(db, "pagosPlan")), asiento);
+  lote.update(doc(db, "clientes", cliente.uid), { vence: aTimestamp(venceDespues), actualizado: serverTimestamp() });
+  return lote.commit();
+};

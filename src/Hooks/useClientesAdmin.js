@@ -3,11 +3,13 @@ import { db, onSnapshot, collection } from "../firebase/firebaseConfig";
 import { query, where } from "firebase/firestore";
 import { claveUso } from "../functions/planes";
 
-//Para el panel del super admin: todos los clientes, el uso de gastos del mes de cada uno y, si se pide, los pagos
-//de uno. Las reglas solo dejan leer esto al administrador.
+//Para el panel del super admin: todos los clientes y, de la colección `uso` (que ya se escucha entera), el total del mes,
+//los pagos de gastos fijos del mes y el historial de todos los meses de cada cliente. Las reglas solo dejan leer esto al admin.
 export const useClientesAdmin = (activo) => {
   const [clientes, cambiarClientes] = useState(null);
   const [usos, cambiarUsos] = useState({});
+  const [fijos, cambiarFijos] = useState({});
+  const [historial, cambiarHistorial] = useState({});
   const [error, cambiarError] = useState(false);
 
   useEffect(() => {
@@ -28,11 +30,25 @@ export const useClientesAdmin = (activo) => {
       collection(db, "uso"),
       (s) => {
         const mapa = {};
+        const mapaFijos = {};
+        const meses = {};
         s.docs.forEach((d) => {
-          const { uidUsuario, gastos } = d.data();
-          if (d.id === claveUso(uidUsuario)) mapa[uidUsuario] = gastos || 0;
+          const { uidUsuario, gastos = 0, fijos: deFijos = 0 } = d.data();
+          const partes = d.id.split("_");
+          const anio = Number(partes[partes.length - 2]);
+          const mes = Number(partes[partes.length - 1]);
+          if (!uidUsuario || !Number.isInteger(anio) || !Number.isInteger(mes)) return;
+          if (d.id === claveUso(uidUsuario)) {
+            mapa[uidUsuario] = gastos;
+            mapaFijos[uidUsuario] = deFijos;
+          }
+          if (!meses[uidUsuario]) meses[uidUsuario] = [];
+          meses[uidUsuario].push({ anio, mes, gastos, fijos: deFijos });
         });
+        Object.values(meses).forEach((lista) => lista.sort((a, b) => b.anio - a.anio || b.mes - a.mes));
         cambiarUsos(mapa);
+        cambiarFijos(mapaFijos);
+        cambiarHistorial(meses);
       },
       alFallar
     );
@@ -42,10 +58,10 @@ export const useClientesAdmin = (activo) => {
     };
   }, [activo]);
 
-  return { clientes, usos, error };
+  return { clientes, usos, fijos, historial, error };
 };
 
-//Pagos de un cliente (más recientes primero). Se ordena aquí para no exigir un índice compuesto.
+//Pagos de un cliente, todos (más recientes primero); la ficha los pagina. Se ordena aquí para no exigir un índice compuesto.
 export const usePagosCliente = (uid) => {
   const [pagos, cambiarPagos] = useState(null);
   useEffect(() => {

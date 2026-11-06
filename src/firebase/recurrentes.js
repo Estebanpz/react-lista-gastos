@@ -51,7 +51,7 @@ export const registrarPago = (recurrente, { cantidad, fecha }) => {
     fecha: getUnixTime(fecha),
     uidUsuario: auth.currentUser.uid,
   });
-  sumarUsoDeGasto(lote, auth.currentUser.uid); //el gasto cuenta para el límite mensual del plan
+  sumarUsoDeGasto(lote, auth.currentUser.uid, { fijo: true }); //el gasto cuenta para el límite mensual del plan
   lote.update(doc(db, "recurrentes", recurrente.id), { proximaFecha: siguienteFecha(recurrente, recurrente.proximaFecha) });
   return esperarEscritura(lote.commit());
 };

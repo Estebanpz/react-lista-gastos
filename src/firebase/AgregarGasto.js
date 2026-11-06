@@ -8,7 +8,9 @@ import { claveUso } from "../functions/planes";
 //El +1 lo calcula el servidor (`increment`), no el dispositivo: los gastos registrados sin conexión se
 //sincronizan después uno por uno y cada uno suma sobre el valor real, sin chocar entre sí ni entre dispositivos.
 //Devuelve "sincronizado" o "en-cola" (ver esperarEscritura)
-export const sumarUsoDeGasto = (lote, uid) => lote.set(doc(db, "uso", claveUso(uid)), { gastos: increment(1), uidUsuario: uid }, { merge: true });
+//Con `fijo: true` (pago de un gasto fijo, id «rec_…») suma también `fijos`: el panel del super admin parte la barra del mes
+export const sumarUsoDeGasto = (lote, uid, { fijo = false } = {}) =>
+  lote.set(doc(db, "uso", claveUso(uid)), fijo ? { gastos: increment(1), fijos: increment(1), uidUsuario: uid } : { gastos: increment(1), uidUsuario: uid }, { merge: true });
 
 const agregarGasto = (descripcion, cantidad, categoria, fecha, uid) => {
     const lote = writeBatch(db);

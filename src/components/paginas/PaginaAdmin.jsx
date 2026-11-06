@@ -10,10 +10,11 @@ import Ilustracion from "../Ilustracion";
 import { BotonPrincipal, MensajeError } from "../auth/elementos";
 import { IconoMas, IconoBuscar, IconoDerecha } from "../iconos";
 import { Entrada } from "../recurrentes/elementos";
-import { PastillaEstado, TONOS, Medidor, fechaCorta } from "../admin/elementos";
+import { PastillaEstado, TONOS, MedidorPartido, fechaCorta } from "../admin/elementos";
 import HojaCliente from "../admin/HojaCliente";
 import HojaPlanCliente from "../admin/HojaPlanCliente";
 import HojaPagoPlan from "../admin/HojaPagoPlan";
+import HojaDiasPrueba from "../admin/HojaDiasPrueba";
 
 const entrar = keyframes`from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; }`;
 
@@ -269,13 +270,14 @@ const GRUPOS = [
 const PaginaAdmin = () => {
   const { cargando, esAdmin } = useCliente();
   const ancha = useMediaQuery(theme.pantallaAncha);
-  const { clientes, usos, error } = useClientesAdmin(esAdmin);
+  const { clientes, usos, fijos, historial, error } = useClientesAdmin(esAdmin);
   const [ahora, cambiarAhora] = useState(() => Date.now());
   const [filtro, cambiarFiltro] = useState(null);
   const [texto, cambiarTexto] = useState("");
   const [abierto, cambiarAbierto] = useState(null); //uid del detalle
   const [editando, cambiarEditando] = useState(undefined); //undefined = cerrada, null = alta, objeto = edición
   const [pagando, cambiarPagando] = useState(null);
+  const [regalando, cambiarRegalando] = useState(null); //cliente al que se le dan días de prueba
 
   useEffect(() => {
     const reloj = window.setInterval(() => cambiarAhora(Date.now()), 60000);
@@ -373,7 +375,7 @@ const PaginaAdmin = () => {
                 <td>{PLANES[f.plan].nombre}</td>
                 <td><PastillaEstado cliente={f} ahora={ahora} /></td>
                 <td>{fechaCorta(f.vence)}</td>
-                <td><Medidor etiqueta={`Gastos de ${f.nombre || f.correo}`} usado={usos[f.uid] || 0} limite={f.limites.gastosMes} /></td>
+                <td><MedidorPartido etiqueta={`Gastos de ${f.nombre || f.correo}`} variables={Math.max(0, (usos[f.uid] || 0) - (fijos[f.uid] || 0))} fijos={fijos[f.uid] || 0} limite={f.limites.gastosMes} /></td>
               </tr>
             ))}
           </tbody>
@@ -401,7 +403,7 @@ const PaginaAdmin = () => {
                         <IconoDerecha tam={18} />
                       </header>
                       <PastillaEstado cliente={f} ahora={ahora} />
-                      <Medidor etiqueta="Gastos del mes" usado={usos[f.uid] || 0} limite={f.limites.gastosMes} />
+                      <MedidorPartido etiqueta="Gastos del mes" variables={Math.max(0, (usos[f.uid] || 0) - (fijos[f.uid] || 0))} fijos={fijos[f.uid] || 0} limite={f.limites.gastosMes} />
                     </Tarjeta>
                   </li>
                 ))}
@@ -413,13 +415,17 @@ const PaginaAdmin = () => {
       <HojaCliente
         cliente={detalle}
         uso={detalle ? usos[detalle.uid] || 0 : 0}
+        fijos={detalle ? fijos[detalle.uid] || 0 : 0}
+        historial={detalle ? historial[detalle.uid] || [] : []}
         ahora={ahora}
         alCerrar={() => cambiarAbierto(null)}
         alPagar={(c) => cambiarPagando(c)}
         alEditar={(c) => cambiarEditando(c)}
+        alDarDias={(c) => cambiarRegalando(c)}
       />
       <HojaPlanCliente abierta={editando !== undefined} cliente={editando || null} alCerrar={() => cambiarEditando(undefined)} />
       <HojaPagoPlan cliente={pagando} alCerrar={() => cambiarPagando(null)} />
+      <HojaDiasPrueba cliente={regalando} alCerrar={() => cambiarRegalando(null)} />
     </>
   );
 };

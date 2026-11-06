@@ -57,7 +57,7 @@ describe("firebase/recurrentes", () => {
     //31 de enero → el siguiente es el 28 de febrero (mes corto)
     expect(mockLote.update).toHaveBeenCalledWith("recurrentes/r1", { proximaFecha: "2026-02-28" });
     //y suma 1 al contador de uso del mes (límite del plan); el +1 lo calcula el servidor
-    expect(mockLote.set).toHaveBeenCalledWith(expect.stringMatching(/^uso\/ana_\d{4}_\d{1,2}$/), { gastos: { incremento: 1 }, uidUsuario: "ana" }, { merge: true });
+    expect(mockLote.set).toHaveBeenCalledWith(expect.stringMatching(/^uso\/ana_\d{4}_\d{1,2}$/), { gastos: { incremento: 1 }, fijos: { incremento: 1 }, uidUsuario: "ana" }, { merge: true });
     expect(mockLote.commit).toHaveBeenCalledTimes(1);
   });
 

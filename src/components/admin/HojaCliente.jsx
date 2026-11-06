@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import theme from "../../theme";
 import Hoja from "../Hoja";
@@ -8,7 +8,9 @@ import { PLANES, ETIQUETAS_LIMITE, CLAVES_LIMITE } from "../../functions/planes"
 import { suspenderCliente } from "../../firebase/clientes";
 import { usePagosCliente } from "../../Hooks/useClientesAdmin";
 import FormatearCantidad from "../../functions/ConvertirAMoneda";
-import { Medidor, PastillaEstado, fechaCorta } from "./elementos";
+import { NOMBRES_MES } from "../../functions/recurrencias";
+import { paginar } from "../../functions/paginar";
+import { MedidorPartido, Paginador, PastillaEstado, fechaCorta } from "./elementos";
 
 const Datos = styled.dl`
   display: grid;
@@ -95,13 +97,31 @@ const Acciones = styled.div`
   margin-top: 1.5rem;
 `;
 
-//Detalle de un cliente: estado, vencimiento, uso del mes, límites, acciones e historial de pagos
-const HojaCliente = ({ cliente, uso, ahora, alCerrar, alPagar, alEditar }) => {
+export const PAGOS_POR_PAGINA = 5;
+export const MESES_POR_PAGINA = 6;
+
+//«Noviembre de 2026»
+const nombreMes = (anio, mes) => {
+  const nombre = NOMBRES_MES[mes - 1];
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} de ${anio}`;
+};
+
+//Detalle de un cliente: estado, vencimiento, uso del mes (variables y fijos), uso por mes, pagos del plan (paginados) y acciones
+const HojaCliente = ({ cliente, uso, fijos, historial, ahora, alCerrar, alPagar, alEditar, alDarDias }) => {
   const pagos = usePagosCliente(cliente ? cliente.uid : null);
   const [error, cambiarError] = useState("");
   const [trabajando, cambiarTrabajando] = useState(false);
+  const [paginaPagos, cambiarPaginaPagos] = useState(1);
+  const [paginaMeses, cambiarPaginaMeses] = useState(1);
+  const uid = cliente ? cliente.uid : null;
+  useEffect(() => {
+    cambiarPaginaPagos(1);
+    cambiarPaginaMeses(1);
+  }, [uid]);
   if (!cliente) return null;
   const suspendido = cliente.estado === "suspendido";
+  const vistaPagos = paginar(pagos || [], paginaPagos, PAGOS_POR_PAGINA);
+  const vistaMeses = paginar(historial || [], paginaMeses, MESES_POR_PAGINA);
 
   const alternarSuspension = async () => {
     cambiarTrabajando(true);
@@ -143,7 +163,7 @@ const HojaCliente = ({ cliente, uso, ahora, alCerrar, alPagar, alEditar }) => {
 
       <Seccion aria-label="Uso del mes">
         <h3>Uso este mes</h3>
-        <Medidor etiqueta={ETIQUETAS_LIMITE.gastosMes} usado={uso} limite={cliente.limites.gastosMes} />
+        <MedidorPartido etiqueta="Gastos del mes" variables={Math.max(0, uso - fijos)} fijos={fijos} limite={cliente.limites.gastosMes} />
         <Limites aria-label="Límites del plan">
           {CLAVES_LIMITE.filter((k) => k !== "gastosMes").map((k) => (
             <li key={k}>
@@ -153,24 +173,53 @@ const HojaCliente = ({ cliente, uso, ahora, alCerrar, alPagar, alEditar }) => {
         </Limites>
       </Seccion>
 
+      <Seccion aria-label="Uso por mes">
+        <h3>Uso por mes</h3>
+        {vistaMeses.paginas === 1 && vistaMeses.elementos.length === 0 ? (
+          <p style={{ color: theme.tintaSuave }}>Todavía no hay gastos registrados.</p>
+        ) : (
+          <>
+            <Pagos>
+              {vistaMeses.elementos.map((m) => (
+                <li key={`${m.anio}-${m.mes}`}>
+                  <span>
+                    {nombreMes(m.anio, m.mes)}
+                    <small>
+                      {Math.max(0, m.gastos - m.fijos)} variables · {m.fijos} fijos
+                    </small>
+                  </span>
+                  <b>
+                    {m.gastos} {m.gastos === 1 ? "gasto" : "gastos"}
+                  </b>
+                </li>
+              ))}
+            </Pagos>
+            <Paginador etiqueta="Páginas de uso por mes" pagina={vistaMeses.pagina} paginas={vistaMeses.paginas} alCambiar={cambiarPaginaMeses} />
+          </>
+        )}
+      </Seccion>
+
       <Seccion aria-label="Pagos">
-        <h3>Pagos registrados</h3>
+        <h3>Pagos registrados{pagos && pagos.length ? ` (${pagos.length})` : ""}</h3>
         {pagos === null ? (
           <p role="status" style={{ color: theme.tintaSuave }}>Cargando…</p>
         ) : pagos.length === 0 ? (
           <p style={{ color: theme.tintaSuave }}>Todavía no hay pagos.</p>
         ) : (
-          <Pagos>
-            {pagos.map((p) => (
-              <li key={p.id}>
-                <span>
-                  {fechaCorta(p.fechaPago)} · {PLANES[p.plan].nombre}
-                  <small>{p.referencia ? `${p.referencia} · ` : ""}hasta el {fechaCorta(p.venceDespues)}</small>
-                </span>
-                <b>{FormatearCantidad(p.monto)}</b>
-              </li>
-            ))}
-          </Pagos>
+          <>
+            <Pagos>
+              {vistaPagos.elementos.map((p) => (
+                <li key={p.id}>
+                  <span>
+                    {fechaCorta(p.fechaPago)} · {PLANES[p.plan].nombre}
+                    <small>{p.referencia ? `${p.referencia} · ` : ""}hasta el {fechaCorta(p.venceDespues)}</small>
+                  </span>
+                  <b>{FormatearCantidad(p.monto)}</b>
+                </li>
+              ))}
+            </Pagos>
+            <Paginador etiqueta="Páginas de pagos" pagina={vistaPagos.pagina} paginas={vistaPagos.paginas} alCambiar={cambiarPaginaPagos} />
+          </>
         )}
       </Seccion>
 
@@ -181,6 +230,9 @@ const HojaCliente = ({ cliente, uso, ahora, alCerrar, alPagar, alEditar }) => {
         </BotonPrincipal>
         <BotonSecundario type="button" onClick={() => alEditar(cliente)}>
           Cambiar plan o editar
+        </BotonSecundario>
+        <BotonSecundario type="button" onClick={() => alDarDias(cliente)}>
+          Dar días de prueba
         </BotonSecundario>
         <BotonSecundario type="button" onClick={alternarSuspension} disabled={trabajando} style={suspendido ? undefined : { color: "#B42318" }}>
           {suspendido ? "Reactivar acceso" : "Suspender"}

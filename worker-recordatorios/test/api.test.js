@@ -65,6 +65,13 @@ test("validarNuevoCliente normaliza el correo y rechaza datos inválidos", () =>
   assert.equal(validarNuevoCliente(null).error, "correo-invalido");
 });
 
+test("validarNuevoCliente acepta días de prueba solo con plan Prueba y entre 1 y 90", () => {
+  assert.equal(validarNuevoCliente({ ...VALIDO, plan: "prueba", dias: 7 }).datos.dias, 7);
+  assert.equal(validarNuevoCliente({ ...VALIDO, plan: "prueba" }).datos.dias, undefined);
+  for (const dias of [0, 91, 2.5, "7"]) assert.equal(validarNuevoCliente({ ...VALIDO, plan: "prueba", dias }).error, "dias-invalidos");
+  assert.equal(validarNuevoCliente({ ...VALIDO, plan: "basico", dias: 7 }).error, "dias-invalidos");
+});
+
 test("super admin crea un cliente: cuenta + plan con el formato de las reglas + enlace", async () => {
   const { pedir, llamadas } = servidor();
   const r = await manejarSolicitud(solicitud(VALIDO), env, { fetch: pedir, ahora: AHORA });

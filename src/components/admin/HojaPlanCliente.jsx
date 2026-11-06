@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Hoja from "../Hoja";
 import { BotonPrincipal, Espera, MensajeError, MensajeExito } from "../auth/elementos";
 import { Formulario, Etiqueta, Grupo, Entrada, Seleccion, Ayuda } from "../recurrentes/elementos";
-import { PLANES, IDS_PLAN, CLAVES_LIMITE, ETIQUETAS_LIMITE, limitesDePlan } from "../../functions/planes";
+import { PLANES, IDS_PLAN, CLAVES_LIMITE, ETIQUETAS_LIMITE, limitesDePlan, diasDePrueba, nuevoVencimiento, DIAS_PRUEBA_MAX } from "../../functions/planes";
 import { asignarPlan, actualizarCliente } from "../../firebase/clientes";
 import FormatearCantidad from "../../functions/ConvertirAMoneda";
 import { crearClienteConAcceso, urlApiClientes } from "../../firebase/crearCliente";
@@ -24,11 +24,14 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
   const [plan, cambiarPlan] = useState("basico");
   const [cupos, cambiarCupos] = useState({}); //cupos a medida (texto); vacío = el del plan
   const [notas, cambiarNotas] = useState("");
+  const [diasPrueba, cambiarDiasPrueba] = useState(""); //vacío = 30
   const [error, cambiarError] = useState("");
   const [enviando, cambiarEnviando] = useState(false);
   const [creado, cambiarCreado] = useState(null); //resultado de crear con acceso: {correo, enlace, correoEnviado}
   const [copiado, cambiarCopiado] = useState(false);
   const conApi = Boolean(urlApiClientes());
+  //Los días de prueba se piden al crear un cliente en Prueba o al pasar a Prueba a uno que tenía otro plan
+  const pideDias = plan === "prueba" && (!editando || cliente.plan !== "prueba");
 
   useEffect(() => {
     if (!abierta) return;
@@ -43,6 +46,7 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
         : {}
     );
     cambiarNotas(cliente ? cliente.notas || "" : "");
+    cambiarDiasPrueba("");
     cambiarError("");
     cambiarEnviando(false);
     cambiarCreado(null);
@@ -65,20 +69,28 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
       extras[k] = n;
     }
     const hayExtras = Object.keys(extras).length > 0;
+    const dias = pideDias ? diasDePrueba(diasPrueba) : null;
+    if (pideDias && dias === null) return cambiarError(`Los días de prueba deben ser un número entero entre 1 y ${DIAS_PRUEBA_MAX}, o déjalo vacío para ${PLANES.prueba.dias}.`);
     cambiarEnviando(true);
     try {
       if (editando) {
         //Cambiar de plan cambia los límites; el cupo a medida (si hay) se aplica encima
         const limites = limitesDePlan(plan, extras);
-        await actualizarCliente(cliente.uid, { nombre, notas, plan, limites, estado: cliente.estado === "suspendido" ? undefined : plan === "prueba" ? "prueba" : "activo" });
+        const cambios = { nombre, notas, plan, limites, estado: cliente.estado === "suspendido" ? undefined : plan === "prueba" ? "prueba" : "activo" };
+        //Al pasar a Prueba el vencimiento nunca se acorta: gana el mayor entre el actual y hoy + días de prueba
+        if (pideDias) {
+          const venceActual = cliente.vence && cliente.vence.toMillis ? cliente.vence.toMillis() : Number(cliente.vence) || 0;
+          cambios.vence = Math.max(venceActual, nuevoVencimiento(null, dias));
+        }
+        await actualizarCliente(cliente.uid, cambios);
       } else if (crearConAcceso) {
-        const r = await crearClienteConAcceso({ correo, nombre, plan, notas });
+        const r = await crearClienteConAcceso({ correo, nombre, plan, notas, dias: pideDias ? dias : undefined });
         if (hayExtras) await actualizarCliente(r.uid, { limites: limitesDePlan(plan, extras) });
         cambiarCreado({ correo: correo.trim().toLowerCase(), ...r });
         cambiarEnviando(false);
         return;
       } else {
-        await asignarPlan({ uid, correo, nombre, plan, notas });
+        await asignarPlan({ uid, correo, nombre, plan, notas, dias: pideDias ? dias : undefined });
         if (hayExtras) await actualizarCliente(uid.trim(), { limites: limitesDePlan(plan, extras) });
       }
       alCerrar(true);
@@ -150,6 +162,21 @@ const HojaPlanCliente = ({ abierta, cliente, alCerrar }) => {
           </Seleccion>
           <Ayuda>{PLANES[plan].limites.gastosMes.toLocaleString("es-CO")} gastos variables al mes, {PLANES[plan].limites.pagosActivos} gastos fijos (pagos), {PLANES[plan].limites.categorias} categorías propias.</Ayuda>
         </div>
+        {pideDias && (
+          <div>
+            <Etiqueta htmlFor={`${id}-dias`}>Días de prueba</Etiqueta>
+            <Entrada
+              id={`${id}-dias`}
+              name="dias"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder={String(PLANES.prueba.dias)}
+              value={diasPrueba}
+              onChange={(e) => cambiarDiasPrueba(e.target.value.replace(/\D/g, ""))}
+            />
+            <Ayuda>Vacío = {PLANES.prueba.dias} días. Entre 1 y {DIAS_PRUEBA_MAX}. El plan vence al terminar el último día (hora de Colombia).</Ayuda>
+          </div>
+        )}
         <Grupo>
           <Etiqueta as="legend">Cupos a medida (opcional)</Etiqueta>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))", gap: "0.85rem" }}>
