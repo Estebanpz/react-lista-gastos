@@ -1,4 +1,4 @@
-import { PLANES, estadoCliente, textoEstado, puedeEscribir, limitesDePlan, nuevoVencimiento, finDeDiaColombia, nivelUso, porcentajeUso, claveUso, diasParaVencer } from "../functions/planes";
+import { PLANES, estadoCliente, textoEstado, puedeEscribir, limitesDePlan, nuevoVencimiento, finDeDiaColombia, nivelUso, porcentajeUso, claveUso, diasParaVencer, diasDePrueba } from "../functions/planes";
 
 const DIA = 86400000;
 const AHORA = Date.parse("2026-10-06T15:00:00Z");
@@ -73,5 +73,15 @@ describe("límites y vencimientos", () => {
     expect(claveUso("ana", new Date("2026-10-31T20:00:00-05:00"))).toBe("ana_2026_10");
     expect(claveUso("ana", new Date("2026-11-01T00:30:00-05:00"))).toBe("ana_2026_11");
     expect(claveUso("ana", new Date("2026-01-05T12:00:00Z"))).toBe("ana_2026_1");
+  });
+});
+
+describe("días de prueba", () => {
+  test("vacío = 30; entero de 1 a 90; lo demás es inválido", () => {
+    expect(diasDePrueba("")).toBe(30);
+    expect(diasDePrueba("  ")).toBe(30);
+    expect(diasDePrueba("7")).toBe(7);
+    expect(diasDePrueba("90")).toBe(90);
+    for (const malo of ["0", "91", "2.5", "-3", "siete"]) expect(diasDePrueba(malo)).toBeNull();
   });
 });

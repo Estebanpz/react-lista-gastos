@@ -26,6 +26,18 @@ const MS_DIA = 86400000;
 const DESFASE_COLOMBIA = 5 * 3600000;
 export const DIAS_AVISO_VENCIMIENTO = 7;
 
+//Días de prueba que el super admin puede dar (D3 del plan). Vacío = los del plan Prueba.
+export const DIAS_PRUEBA_MIN = 1;
+export const DIAS_PRUEBA_MAX = 90;
+
+//Texto del campo «Días de prueba» → número de días, o null si no es válido. Vacío = PLANES.prueba.dias (30).
+export const diasDePrueba = (texto) => {
+  const limpio = String(texto ?? "").trim();
+  if (limpio === "") return PLANES.prueba.dias;
+  const n = Number(limpio);
+  return Number.isInteger(n) && n >= DIAS_PRUEBA_MIN && n <= DIAS_PRUEBA_MAX ? n : null;
+};
+
 //Fecha de vencimiento como número (ms) venga de un Timestamp de Firestore, de una Date o de un número
 const aMs = (valor) => (valor && typeof valor.toMillis === "function" ? valor.toMillis() : valor instanceof Date ? valor.getTime() : Number(valor));
 

@@ -1,6 +1,6 @@
 import {
   siguienteFecha, primeraFecha, hoyEnZona, estadoPago, tipoAviso, avisoPendiente, claveAviso,
-  etiquetaVencimiento, diasEntre, sumarDias, diaSemanaISO,
+  etiquetaVencimiento, diasEntre, sumarDias, diaSemanaISO, turnoDelDia,
 } from "../functions/recurrencias";
 
 const mensual = (dia, extra = {}) => ({ frecuencia: "mensual", dia, mes: 0, activo: true, proximaFecha: "2026-01-01", ...extra });
@@ -116,6 +116,23 @@ describe("avisos (3 días antes y el mismo día)", () => {
   it("tras pagar, el aviso anterior no afecta la nueva fecha", () => {
     const pagado = rec({ proximaFecha: "2026-12-10", ultimoAviso: "2026-11-10:hoy" });
     expect(avisoPendiente(pagado, "2026-12-07")).toBe("antes");
+  });
+  test("null antes de las 8:30 de Colombia; 0, 1, 2 y 3 en cada turno; 3 hasta medianoche", () => {
+    expect(turnoDelDia(new Date("2026-11-10T13:00:00Z"))).toBeNull(); //8:00
+    expect(turnoDelDia(new Date("2026-11-10T13:30:00Z"))).toBe(0); //8:30
+    expect(turnoDelDia(new Date("2026-11-10T16:30:00Z"))).toBe(1); //11:30
+    expect(turnoDelDia(new Date("2026-11-10T19:30:00Z"))).toBe(2); //14:30
+    expect(turnoDelDia(new Date("2026-11-10T22:30:00Z"))).toBe(3); //17:30
+    expect(turnoDelDia(new Date("2026-11-11T04:59:00Z"))).toBe(3); //23:59
+    expect(turnoDelDia(new Date("2026-11-11T05:00:00Z"))).toBeNull(); //00:00 del día siguiente
+  });
+  test("el aviso «hoy» se repite una vez por turno y no sale con turno null", () => {
+    expect(claveAviso(rec(), "hoy", 2)).toBe("2026-11-10:hoy:2");
+    expect(claveAviso(rec(), "antes", 2)).toBe("2026-11-10:antes");
+    expect(avisoPendiente(rec(), "2026-11-10", null)).toBeNull();
+    expect(avisoPendiente(rec({ ultimoAviso: "2026-11-10:hoy:0" }), "2026-11-10", 1)).toBe("hoy");
+    expect(avisoPendiente(rec({ ultimoAviso: "2026-11-10:hoy:1" }), "2026-11-10", 1)).toBeNull();
+    expect(avisoPendiente(rec(), "2026-11-07", null)).toBe("antes");
   });
 });
 

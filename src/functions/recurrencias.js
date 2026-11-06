@@ -6,6 +6,19 @@ export const FRECUENCIAS = ["semanal", "quincenal", "mensual", "anual"];
 export const DIAS_ANTES_AVISO = 3;
 export const ZONA_POR_DEFECTO = "America/Bogota";
 
+//El día del pago el aviso push se repite por turnos (8:30, 11:30, 14:30 y 17:30 en Colombia, UTC-5 sin horario de verano)
+//hasta que la persona lo registre. Deben coincidir con los crons de worker-recordatorios/wrangler.jsonc.
+export const TURNOS_HOY = 4;
+const PRIMER_TURNO_MIN = 8 * 60 + 30;
+const MINUTOS_ENTRE_TURNOS = 180;
+
+//Turno de hoy según la hora de Colombia: null antes de las 8:30; 0, 1, 2 o 3 después (3 hasta medianoche)
+export const turnoDelDia = (ahora = new Date()) => {
+  const minutos = (ahora.getUTCHours() * 60 + ahora.getUTCMinutes() - 300 + 1440) % 1440;
+  if (minutos < PRIMER_TURNO_MIN) return null;
+  return Math.min(TURNOS_HOY - 1, Math.floor((minutos - PRIMER_TURNO_MIN) / MINUTOS_ENTRE_TURNOS));
+};
+
 const MS_DIA = 86400000;
 const aNumeros = (texto) => texto.split("-").map(Number);
 const dosDigitos = (n) => String(n).padStart(2, "0");
@@ -75,12 +88,14 @@ export const tipoAviso = (rec, hoy) => {
   return null;
 };
 
-export const claveAviso = (rec, tipo) => `${rec.proximaFecha}:${tipo}`;
+//«3 días antes» se avisa una vez («fecha:antes»); el día del pago, una vez por turno («fecha:hoy:0» … «fecha:hoy:3»)
+export const claveAviso = (rec, tipo, turno = 0) => (tipo === "hoy" ? `${rec.proximaFecha}:hoy:${turno}` : `${rec.proximaFecha}:${tipo}`);
 
-//Aviso pendiente de enviar hoy (null si no toca o ya se envió)
-export const avisoPendiente = (rec, hoy) => {
+//Aviso pendiente de enviar ahora (null si no toca o ya se envió). Con turno null (antes de las 8:30) no hay aviso «hoy».
+export const avisoPendiente = (rec, hoy, turno = 0) => {
   const tipo = tipoAviso(rec, hoy);
-  return tipo && rec.ultimoAviso !== claveAviso(rec, tipo) ? tipo : null;
+  if (!tipo || (tipo === "hoy" && turno === null)) return null;
+  return rec.ultimoAviso !== claveAviso(rec, tipo, turno) ? tipo : null;
 };
 
 //Texto del vencimiento para la lista («vence hoy», «en 3 días», «hace 2 días»)
